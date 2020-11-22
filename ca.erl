@@ -1,29 +1,32 @@
 -module(ca).
 -import('lists', [append/2]).
--export([main/0, automator/0,
+-import('string', [join/2]).
+-export([main/0, automator/1,
         includeTx/2, 
         createMinerList/2,
         dummyMining/0,
-        printList/2]).
+        printList/2,
+        shuffleList/1,
+        sendToMiner/5]).
 
 % ----------------------------------
 % Main Process that spawns stuff
 % ----------------------------------
 main() ->
     Miners = createMinerList([], 10),
-    register(txIncluder, spawn(?MODULE, includeTx, [[], Miners])),
-    spawn(?MODULE, automator, []),
-    timer:sleep(10000),
-    unregister(txIncluder).
-
+    timer:sleep(1000),
+    TxIncluder = spawn(?MODULE, includeTx, [[], Miners]),
+    timer:sleep(1000),
+    spawn(?MODULE, automator, [TxIncluder]),
+    timer:sleep(1000).
 % ----------------------------------
 % Spawing Dummy Miners and saving their PIDs in a list
 % ----------------------------------
 createMinerList(Miners, 0) ->
-    printList("Miners", Miners),
+    printList("Created Miner list", Miners),
     Miners;
 
-createMinerList(Miners, Num) ->
+createMinerList(Miners, Num) when Num > 0 ->
     Pid = spawn(?MODULE, dummyMining, []),
     NewList = [Pid | Miners],
     NumNew = Num - 1,
@@ -36,18 +39,18 @@ createMinerList(Miners, Num) ->
 printList(Message, List) ->
     io:format("~p: ~p~n", [Message, List]).
 
-automator() ->
-    txIncluder ! {giorgio, pablo, 100},
+automator(Recipient) ->
+    Recipient ! {giorgio, pablo, 100},
     timer:sleep(500),
-    txIncluder ! {giorgio, nina, 50},
+    Recipient ! {giorgio, nina, 50},
     timer:sleep(500),
-    txIncluder ! {mathias, pablo, 30},
+    Recipient ! {mathias, pablo, 30},
     timer:sleep(500),
-    txIncluder ! {giorgio, peter, 200},
+    Recipient ! {giorgio, peter, 200},
     timer:sleep(500),
-    txIncluder ! {martin, nina, 10},
+    Recipient ! {martin, nina, 10},
     timer:sleep(500),
-    txIncluder ! {peter, paul, 5},
+    Recipient ! {peter, paul, 5},
     timer:sleep(500).
 
 % ----------------------------------
@@ -61,15 +64,19 @@ includeTx(Pool, Miners) ->
         {To, From, Amount} when length(Pool) ->
             UpdatedTxPool = append(Pool, [{To, From, Amount}]),
             io:format("From: ~p, To: ~p, Amount: ~p ~n", [From, To, Amount]),
-            includeTx(UpdatedTxPool, Miners);
+            ShuffledMiners = shuffleList(Miners),
+            sendToMiner(UpdatedTxPool, ShuffledMiners, To, From, Amount);
 
         {printPool} ->
             io:format("TxPool: ~p~n", [Pool])
-    end,
+    end.
 
-    % shuffle list
+% shuffle list
+shuffleList(List) ->
+    [X||{_,X} <- lists:sort([{rand:uniform(), Miner} || Miner <- List])].
 
-    % take oldest tx and next Miner
+% take oldest tx and next Miner
+sendToMiner(Pool, Miners, Receiver, Sender, Money) ->
     if 
         length(Pool) > 0 ->
             [{Receiver, Sender, Money} | T] = Pool,
@@ -86,5 +93,6 @@ includeTx(Pool, Miners) ->
 dummyMining() ->
     receive
         {To, From, Amount} ->
-            io:format("Mined this Tx | From: ~p, To: ~p, Amount: ~p ~n", [From, To, Amount])
+            io:format("Mined this Tx | From: ~p, To: ~p, Amount: ~p ~n", [From, To, Amount]),
+            dummyMining()
     end.
