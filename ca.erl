@@ -61,7 +61,7 @@ automator(Recipient) ->
 % ----------------------------------
 includeTx(Pool, Miners) ->
     receive
-        {To, From, Amount} when length(Pool) ->
+        {To, From, Amount} ->
             UpdatedTxPool = append(Pool, [{To, From, Amount}]),
             io:format("From: ~p, To: ~p, Amount: ~p ~n", [From, To, Amount]),
             ShuffledMiners = shuffleList(Miners),
