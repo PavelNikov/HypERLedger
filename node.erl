@@ -47,7 +47,7 @@ node_code(Ledger) ->
             case Bool of
                 true ->
                     io:format("Sender has enough funds.~n");
-                % %%%%%%%%%%%%%%%%%%%%%%%%%% CONTINUE HERE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% (i) Calculate hash (ii) Multicast Transaction.
+                % %%%%%%%%%%%%%%%%%%%%%%%%%% CONTINUE HERE %%%%%%%%%%%%%%%%%%%%%%%%%%%%% (i) Calculate hash (ii) Multicast Transaction.
                     
                 false ->
                     io:format("Sender does not have enough funds.~n")
