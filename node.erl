@@ -13,7 +13,7 @@ main() ->
     % Pid ! {{"You", "Me", 5, 200, 305}, 8797766}.
 
 node_code(Ledger) ->
-    
+    % Hello Pablo
     % io:format("~p~n", [Ledger]),
 
     receive
