@@ -32,7 +32,6 @@ createNodeList(Nodes, Num) when Num > 0 ->
     NumNew = Num - 1,
     createNodeList(NewList, NumNew).
 
-
 % ----------------------------------
 % Helper functions
 % ----------------------------------
