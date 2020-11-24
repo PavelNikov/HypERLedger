@@ -8,6 +8,8 @@
         shuffleList/1,
         sendToMiner/5]).
 
+% TODO: For some reason, some processes don't hash correctly. Run the code.
+
 % ----------------------------------
 % Main Process that spawns stuff
 % ----------------------------------
