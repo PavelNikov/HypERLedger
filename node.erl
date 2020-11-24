@@ -50,7 +50,7 @@ node_code(Ledger, Group) ->
                     io:format("Sender has enough funds.~n"),
                     % Calculate new Hash
                     [{_, OHash}|_] = Ledger,
-                    Item = io_lib:format("~s~s~w~w~w",[From, To, Amount, NSFrom, NSTo]),
+                    Item = io_lib:format("~s~s~w~w~w",[From, To, Amount, SenderBalance, ReceiverBalance]),
                     NHash = crypto:mac(hmac, sha256, OHash, Item),
                     % Multicast the block
                     [X ! {{From, To, Amount, SenderBalance, ReceiverBalance}, NHash}|| X <- Group, X =/= self()],
@@ -63,10 +63,8 @@ node_code(Ledger, Group) ->
             
         % Node receives the list of peer nodes to be able to multicast later on.
         {List_of_Nodes} ->
-            % io:format("Received list of nodes~n"),
             node_code(Ledger, List_of_Nodes)
-
-
+        
     end.
 
 search_sender_current_balance(_, []) ->

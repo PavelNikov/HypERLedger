@@ -84,7 +84,7 @@ sendToMiner(Pool, Nodes, From, To, Amount) ->
         length(Pool) > 0 ->
             [{From, To, Amount} | T] = Pool,
             [NextMiner | R] = Nodes,
-            NextMiner ! {From, To, Amount},
+            NextMiner ! {{From, To, Amount}},
             includeTx(T, R);
         true ->
             includeTx(Pool, Nodes)
