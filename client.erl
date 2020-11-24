@@ -24,20 +24,21 @@ choose() ->
     timer:sleep(10),
 
     printLine(),
-    io:format("ACCOUNT CREATION"),
+    io:format("hypERLedger CLIENT APPLICATION"),
     printLine(),
     io:format("1. Create new account~n"),
     io:format("2. Log in~n"),
-    io:format("=> "),
-    Input = io:get_chars(" ", 1),
-    if
-        Input == "1" ->
+    io:format("3. Quit~n"),
+
+    {ok, Choice} = io:read("=> "),
+    case Choice of
+        1 ->
             registerClient();
-        Input == "2" ->
+        2 ->
             login();
-        Input =/= "1" and (Input =/= "2") ->
-            io:format("Invalid Input~n"),
-            choose()
+        3 ->
+            io:format("EXITING~n"),
+            exit(self(), ok)
     end.
 
 % Register Client with a new secret name
@@ -47,7 +48,7 @@ registerClient() ->
     printLine(),
     {ok, SecretName} = io:read("Type in a secret name for your new account: "),
     FakeCa = whereis(fakeCa),
-    FakeCa ! {self(), SecretName},
+    FakeCa ! {register, self(), SecretName},
     receive
         {FakeCa, ok} ->
             timer:sleep(100),
@@ -63,13 +64,13 @@ login() ->
     {ok, SecretName} = io:read("Type in your secret name to enter your wallet: "),
     FakeCa = whereis(fakeCa),
     % Try logging in with secret name
-    FakeCa ! {self(), SecretName},
+    FakeCa ! {login, self(), SecretName},
     % Wait for answer from CA
     receive 
         {FakeCa, ok} ->
             wallet(SecretName);
         {FakeCa, nope} ->
-            io:format("No match found for ~p. Please make sure it's spellt correctly~n", [SecretName]),
+            io:format("WARNING: No match found for ~p. Please make sure it's spelled correctly~n", [SecretName]),
             login()
     end.
 
@@ -79,7 +80,8 @@ wallet(From) ->
     printLine(),
     io:format("1. Retrieve Account Balance~n"),
     io:format("2. Send Money~n"),
-    io:format("3. Exit~n"),
+    io:format("3. Logout~n"),
+    io:format("4. Quit~n"),
     
     {ok, Choice} = io:read("=> "),
     case Choice of
@@ -88,7 +90,9 @@ wallet(From) ->
         2 ->
             sendMoney(From);
         3 ->
-           io:format("EXITING~n"),
+            choose();
+        4 ->
+           io:format("QUITTING~n"),
            exit(self(), ok) 
     end.
 
@@ -145,15 +149,39 @@ retrieveBalance(From) ->
 
 caStuff(Clients) ->
     receive
-        {Pid, SecretName} -> 
+        {register, Pid, SecretName} -> 
             io:format("INFO: ca should hash(~p) and save/check hash in list. send ok or nope~n~n", [SecretName]),
             Pid ! {self(), ok},
             caStuff([SecretName | Clients]);
+
+        {login, Pid, SecretName} -> 
+            Bool = searchList(SecretName, Clients),
+            case Bool of
+                true ->
+                    Pid ! {self(), ok};
+                false ->
+                    Pid ! {self(), nope}
+            end,
+            caStuff(Clients);
 
         {Client, To, From, Amount} ->
             io:format("INFO: Now would be sending to miner~n"),
             Client ! {self(), ok},
             caStuff(Clients)
+    end.
+
+searchList(Item, []) ->
+    false;
+
+searchList(Item, List) ->
+
+    [Entry | R] = List,
+    Bool = (Item == Entry),
+    case Bool of
+        true ->
+            true;
+        false ->
+            searchList(Item, R)
     end.
 
 printLine() ->
