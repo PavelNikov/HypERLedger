@@ -1,5 +1,5 @@
 -module(node).
--import(crypto,[start/0, hmac/3]).
+-import(crypto,[start/0, hmac/3, mac/4]).
 -import(lists, [member/2]).
 -import(string, [join/2]).
 -export([main/0,node_code/2]).
@@ -23,7 +23,7 @@ node_code(Ledger, Group) ->
         % Receive a new Block:
         {{From, To, Amount, NSFrom, NSTo}, NHash} -> 
             % Retrieve the old hash value:
-            [{_, OHash}|R] = Ledger,
+            [{_, OHash}|_] = Ledger,
 
             % Compute the hash value by taking the OHash has the key and the Info as the data:
             crypto:start(),
@@ -31,7 +31,8 @@ node_code(Ledger, Group) ->
             % item = string:join([From, To, Amount, NSFrom, NSTo], ", "),
             % io:format(item),
             Hash = crypto:hmac(sha, OHash, "{From, To, Amount, NSFrom, NSTo}"),
-            % io:format("~p~n", [Hash]),
+            Hash = crypto:mac(sha, OHash,"{From, To, Amount, NSFrom, NSTo}"),
+            io:format("~p~n", [Hash]),
             
             % Check whether NHash and Hash match. If they do, update ledger. Otherwise refuse to update:
             Bool = (Hash == NHash),
@@ -51,7 +52,7 @@ node_code(Ledger, Group) ->
             case Bool of
                 true ->
                     io:format("Sender has enough funds.~n"),
-                    [{_, OHash}|R] = Ledger,
+                    [{_, OHash}|_] = Ledger,
                     crypto:start(),
                     NHash = crypto:hmac(sha, OHash, "{From, To, Amount, SenderBalance, ReceiverBalance}"),
                     % Multicast
