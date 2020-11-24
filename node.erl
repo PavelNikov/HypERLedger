@@ -10,8 +10,8 @@ main() ->
     Group = [Pid1, Pid2],
     Pid1 ! {Group},
     Pid2 ! {Group},
-    Pid1 ! {{"Me", "You", 5, 200, 305}, <<27,56,253,239,38,191,119,10,129,86,191,11,40,195,62,243,243,136,238,110>>},
-    Pid1 ! {{"He", "Her", 5, 195, 310}, <<37,51,111,20,179,159,162,246,192,112,66,51,68,61,54,112,2,202,47,222>>},
+    % Pid1 ! {{"Me", "You", 5, 200, 305}, <<27,56,253,239,38,191,119,10,129,86,191,11,40,195,62,243,243,136,238,110>>},
+    % Pid1 ! {{"He", "Her", 5, 195, 310}, <<37,51,111,20,179,159,162,246,192,112,66,51,68,61,54,112,2,202,47,222>>},
     Pid1 ! {{"Me", "You", 5}},
     ok.
     % Pid ! {{"You", "Me", 5, 200, 305}, 8797766}.
@@ -25,14 +25,10 @@ node_code(Ledger, Group) ->
             % Retrieve the old hash value:
             [{_, OHash}|_] = Ledger,
 
-            % Compute the hash value by taking the OHash has the key and the Info as the data:
+            % Calculate the Hash to compare with NHash.
             crypto:start(),
-            % Works with: "{From, To, Amount, NSFrom, NSTo}"
-            % item = string:join([From, To, Amount, NSFrom, NSTo], ", "),
-            % io:format(item),
-            Hash = crypto:hmac(sha, OHash, "{From, To, Amount, NSFrom, NSTo}"),
-            Hash = crypto:mac(sha, OHash,"{From, To, Amount, NSFrom, NSTo}"),
-            io:format("~p~n", [Hash]),
+            Item = io_lib:format("~s~s~w~w~w",[From, To, Amount, NSFrom, NSTo]),
+            Hash = crypto:mac(hmac, sha256, OHash, Item),
             
             % Check whether NHash and Hash match. If they do, update ledger. Otherwise refuse to update:
             Bool = (Hash == NHash),
@@ -52,10 +48,11 @@ node_code(Ledger, Group) ->
             case Bool of
                 true ->
                     io:format("Sender has enough funds.~n"),
+                    % Calculate new Hash
                     [{_, OHash}|_] = Ledger,
-                    crypto:start(),
-                    NHash = crypto:hmac(sha, OHash, "{From, To, Amount, SenderBalance, ReceiverBalance}"),
-                    % Multicast
+                    Item = io_lib:format("~s~s~w~w~w",[From, To, Amount, NSFrom, NSTo]),
+                    NHash = crypto:mac(hmac, sha256, OHash, Item),
+                    % Multicast the block
                     [X ! {{From, To, Amount, SenderBalance, ReceiverBalance}, NHash}|| X <- Group, X =/= self()],
                     node_code([{{From, To, Amount, SenderBalance, ReceiverBalance}, NHash}|Ledger], Group);
     
@@ -66,7 +63,7 @@ node_code(Ledger, Group) ->
             
         % Node receives the list of peer nodes to be able to multicast later on.
         {List_of_Nodes} ->
-            io:format("Received list of nodes~n"),
+            % io:format("Received list of nodes~n"),
             node_code(Ledger, List_of_Nodes)
 
 
