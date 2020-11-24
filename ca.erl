@@ -3,7 +3,7 @@
 -import('string', [join/2]).
 -export([main/0, automator/1,
         includeTx/2, 
-        createMinerList/2,
+        createNodeList/2,
         dummyMining/0,
         printList/2,
         shuffleList/1,
@@ -13,24 +13,24 @@
 % Main Process that spawns stuff
 % ----------------------------------
 main() ->
-    Miners = createMinerList([], 10),
+    Nodes = createNodeList([], 10),
     timer:sleep(1000),
-    TxIncluder = spawn(?MODULE, includeTx, [[], Miners]),
+    TxIncluder = spawn(?MODULE, includeTx, [[], Nodes]),
     timer:sleep(1000),
     spawn(?MODULE, automator, [TxIncluder]),
     timer:sleep(1000).
 % ----------------------------------
-% Spawing Dummy Miners and saving their PIDs in a list
+% Spawing Dummy Nodes and saving their PIDs in a list
 % ----------------------------------
-createMinerList(Miners, 0) ->
-    printList("Created Miner list", Miners),
-    Miners;
+createNodeList(Nodes, 0) ->
+    printList("Created Miner list", Nodes),
+    Nodes;
 
-createMinerList(Miners, Num) when Num > 0 ->
+createNodeList(Nodes, Num) when Num > 0 ->
     Pid = spawn(?MODULE, dummyMining, []),
-    NewList = [Pid | Miners],
+    NewList = [Pid | Nodes],
     NumNew = Num - 1,
-    createMinerList(NewList, NumNew).
+    createNodeList(NewList, NumNew).
 
 
 % ----------------------------------
@@ -59,13 +59,13 @@ automator(Recipient) ->
 % In also send the oldest Tx to a random Miner
 % using a shuffle of the list
 % ----------------------------------
-includeTx(Pool, Miners) ->
+includeTx(Pool, Nodes) ->
     receive
         {To, From, Amount} ->
             UpdatedTxPool = append(Pool, [{To, From, Amount}]),
             io:format("From: ~p, To: ~p, Amount: ~p ~n", [From, To, Amount]),
-            ShuffledMiners = shuffleList(Miners),
-            sendToMiner(UpdatedTxPool, ShuffledMiners, To, From, Amount);
+            ShuffledNodes = shuffleList(Nodes),
+            sendToMiner(UpdatedTxPool, ShuffledNodes, To, From, Amount);
 
         {printPool} ->
             io:format("TxPool: ~p~n", [Pool])
@@ -76,19 +76,19 @@ shuffleList(List) ->
     [X||{_,X} <- lists:sort([{rand:uniform(), Miner} || Miner <- List])].
 
 % take oldest tx and next Miner
-sendToMiner(Pool, Miners, Receiver, Sender, Money) ->
+sendToMiner(Pool, Nodes, Receiver, Sender, Money) ->
     if 
         length(Pool) > 0 ->
             [{Receiver, Sender, Money} | T] = Pool,
-            [NextMiner | R] = Miners,
+            [NextMiner | R] = Nodes,
             NextMiner ! {Receiver, Sender, Money},
             includeTx(T, R);
         true ->
-            includeTx(Pool, Miners)
+            includeTx(Pool, Nodes)
     end.
 
 % ----------------------------------
-% Function for the Dummy Miners
+% Function for the Dummy Nodes
 % ----------------------------------
 dummyMining() ->
     receive
