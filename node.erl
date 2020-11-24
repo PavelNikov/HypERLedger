@@ -30,8 +30,7 @@ node_code(Ledger, Group) ->
             % Works with: "{From, To, Amount, NSFrom, NSTo}"
             % item = string:join([From, To, Amount, NSFrom, NSTo], ", "),
             % io:format(item),
-            Hash = crypto:hmac(sha, OHash, "{From, To, Amount, NSFrom, NSTo}"),
-            Hash = crypto:mac(sha, OHash,"{From, To, Amount, NSFrom, NSTo}"),
+            Hash = crypto:mac(hmac, sha256, OHash,"{From, To, Amount, NSFrom, NSTo}"),
             io:format("~p~n", [Hash]),
             
             % Check whether NHash and Hash match. If they do, update ledger. Otherwise refuse to update:
@@ -54,7 +53,7 @@ node_code(Ledger, Group) ->
                     io:format("Sender has enough funds.~n"),
                     [{_, OHash}|_] = Ledger,
                     crypto:start(),
-                    NHash = crypto:hmac(sha, OHash, "{From, To, Amount, SenderBalance, ReceiverBalance}"),
+                    NHash = crypto:mac(hmac, sha256, OHash, "{From, To, Amount, SenderBalance, ReceiverBalance}"),
                     % Multicast
                     [X ! {{From, To, Amount, SenderBalance, ReceiverBalance}, NHash}|| X <- Group, X =/= self()],
                     node_code([{{From, To, Amount, SenderBalance, ReceiverBalance}, NHash}|Ledger], Group);

@@ -23,7 +23,7 @@ main() ->
 % Spawing Dummy Nodes and saving their PIDs in a list
 % ----------------------------------
 createNodeList(Nodes, 0) ->
-    printList("Created Miner list", Nodes),
+    printList("Created Nodes list", Nodes),
     Nodes;
 
 createNodeList(Nodes, Num) when Num > 0 ->
