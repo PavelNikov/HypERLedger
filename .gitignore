@@ -3,3 +3,4 @@ node.beam
 instructions_git.md
 erl_crash.dump
 client.beam
+main.beam
