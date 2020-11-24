@@ -12,7 +12,7 @@
 % Main Process that spawns stuff
 % ----------------------------------
 init() ->
-    Nodes = createNodeList([], 10),
+    Nodes = createNodeList([], 15),
     timer:sleep(1000),
     TxIncluder = spawn(?MODULE, includeTx, [[], Nodes]),
     timer:sleep(1000),
@@ -31,7 +31,7 @@ createNodeList(Nodes, 0) ->
     Nodes;
 
 createNodeList(Nodes, Num) when Num > 0 ->
-    Pid = spawn(node, node_code, [[{{"None", "None", "None", "None", "None"}, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>}], []]),
+    Pid = spawn(node, node_code, [[{{"God", "CA", 576460752303423488, 0, 576460752303423488}, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>}], []]),
     NewList = [Pid | Nodes],
     NumNew = Num - 1,
     createNodeList(NewList, NumNew).
@@ -43,17 +43,17 @@ printList(Message, List) ->
     io:format("~p: ~p~n", [Message, List]).
 
 automator(Recipient) ->
-    Recipient ! {giorgio, pablo, 100},
+    % Recipient ! {"CA", "pablo", 100},
+    % timer:sleep(500),
+    % % Recipient ! {"CA", "nina", 50},
+    % % timer:sleep(500),
+    % % Recipient ! {"CA", "pablo", 30},
+    % % timer:sleep(500),
+    % % Recipient ! {"CA", "peter", 200},
+    % % timer:sleep(500),
+    Recipient ! {"CA", "nina", 10},
     timer:sleep(500),
-    Recipient ! {giorgio, nina, 50},
-    timer:sleep(500),
-    Recipient ! {mathias, pablo, 30},
-    timer:sleep(500),
-    Recipient ! {giorgio, peter, 200},
-    timer:sleep(500),
-    Recipient ! {martin, nina, 10},
-    timer:sleep(500),
-    Recipient ! {peter, paul, 5},
+    Recipient ! {"CA", "paul", 5},
     timer:sleep(500).
 
 % ----------------------------------
@@ -64,7 +64,7 @@ automator(Recipient) ->
 % ----------------------------------
 includeTx(Pool, Nodes) ->
     receive
-        {To, From, Amount} ->
+        {From, To, Amount} ->
             UpdatedTxPool = append(Pool, [{From, To, Amount}]),
             io:format("From: ~p, To: ~p, Amount: ~p ~n", [From, To, Amount]),
             ShuffledNodes = shuffleList(Nodes),
