@@ -20,6 +20,7 @@ automator(Recipient) ->
     Recipient ! {"nina", "paul", 5},
     timer:sleep(500).
 
+
 searchList(Item, []) ->
     false;
 

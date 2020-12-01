@@ -2,7 +2,7 @@
 -import(crypto,[start/0, hmac/3, mac/4]).
 -import(lists, [member/2]).
 -import(string, [join/2]).
--export([main/0,node_code/2]).
+-export([node_code/2]).
 
 node_code(Ledger, Group) ->
     % io:format("~p~n", [Ledger]),
