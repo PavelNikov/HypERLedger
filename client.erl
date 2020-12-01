@@ -47,8 +47,9 @@ registerClient() ->
     printLine(),
     io:format("REGISTER CLIENT"),
     printLine(),
-    {ok, SecretName} = io:read("Type in a secret name for your new account: "),
+    {ok, Sname} = io:read("Type in a secret name for your new account: "),
     Ca = whereis(ca),
+    SecretName = io_lib:format("~p",[Sname]),
     Ca ! {register, self(), SecretName},
     receive
         {Ca, ok} ->
@@ -62,9 +63,10 @@ login() ->
     io:format("LOGIN"),
     printLine(),
     io:format("INFO: Make sure no one is looking over your shoulder...~n"),
-    {ok, SecretName} = io:read("Type in your secret name to enter your wallet: "),
+    {ok, Sname} = io:read("Type in your secret name to enter your wallet: "),
     Ca = whereis(ca),
     % Try logging in with secret name
+    SecretName = io_lib:format("~s",[atom_to_list(Sname)]),
     Ca ! {login, self(), SecretName},
     % Wait for answer from CA
     receive 

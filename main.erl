@@ -1,9 +1,14 @@
 -module(main).
 -export([init/0]).
--import(ca, [ca_code/1]).
+-import(ca, [ca_init/1]).
 -import(helper, [printList/2, automator/1]).
 
 init() ->
+    % Unregister some stuff to avoid errors. Only uncomment the line if you enconter the error: ** exception error: bad argument BLAAAAAHHHHH
+    % unregister(ca),
+    % unregister(txIncluder),
+
+    % Start spawning stuff
     Nodes = createNodeList([], 15),
     timer:sleep(1000),
     register(ca, spawn(ca, ca_init, [Nodes])),

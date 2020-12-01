@@ -1,21 +1,24 @@
 -module(ca).
--export([ca_code/1]).
+-export([ca_init/1, includeTx/2]).
 -import('lists', [append/2]).
 -import('node',[node_code/2]).
 -import('helper',[searchList/2]).
 
-ca_init(Nodes) ->
-    TxIncluder = spawn(?MODULE, includeTx, [[], Nodes]),
-    ca_code(Nodes).
+% Don't forget to unregister
 
-ca_code(Nodes) ->
-    
+ca_init(Nodes) ->
+    register(txIncluder, spawn(?MODULE, includeTx, [[], Nodes])),
+    io:format("Line 9~n"),
+    ca_code(Nodes, []),
+    ok.
+
+ca_code(Nodes, Clients) ->
     receive
         {register, Pid, SecretName} -> 
            crypto:start(),
             HInfo = "register",
             HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
-            Bool = helper:searchList(HashedName, Nodes),
+            Bool = helper:searchList(HashedName, Clients),
             case Bool of
                 false ->
                     Pid ! {self(), ok};
@@ -23,26 +26,26 @@ ca_code(Nodes) ->
                     io:format("Client already exist, please log in"),
                     Pid ! {self(), nope}
             end,
-            ca_code([SecretName | Nodes]);
+            ca_code(Nodes, [SecretName | Clients]);
 
         {login, Pid, SecretName} -> 
             crypto:start(),
             HInfo = "login",
             HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
-            Bool = helper:searchList(HashedName, Nodes),
+            Bool = helper:searchList(HashedName, Clients),
             case Bool of
                 true ->
                     Pid ! {self(), ok};
                 false ->
                     Pid ! {self(), nope}
             end,
-            ca_code(Nodes);
+            ca_code(Nodes, Clients);
 
         {Client, From, To, Amount} ->
-            TxIncluder ! {From, To, Amount},
+            txIncluder ! {From, To, Amount},
             io:format("INFO: Now would be sending to miner~n"),
             Client ! {self(), ok},
-            ca_code(Nodes)
+            ca_code(Nodes, Clients)
     end.
 
 % ----------------------------------
