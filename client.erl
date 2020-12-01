@@ -2,6 +2,7 @@
 -import('lists', [append/2]).
 -import('string', [join/2]).
 -import('main', []).
+-import(crypto,[start/0, hmac/3, mac/4]).
 -export([main/0, 
         login/0, 
         choose/0, 
@@ -151,12 +152,24 @@ retrieveBalance(From) ->
 caStuff(Clients) ->
     receive
         {register, Pid, SecretName} -> 
-            io:format("INFO: ca should hash(~p) and save/check hash in list. send ok or nope~n~n", [SecretName]),
-            Pid ! {self(), ok},
+            crypto:start(),
+            HInfo = "register",
+            HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
+            Bool = searchList(HashedName, Clients),
+            case Bool of
+                false ->
+                    Pid ! {self(), ok};
+                true ->
+                    io:format("Client already exist, please log in"),
+                    Pid ! {self(), nope}
+            end,
             caStuff([SecretName | Clients]);
 
         {login, Pid, SecretName} -> 
-            Bool = searchList(SecretName, Clients),
+            crypto:start(),
+            HInfo = "register",
+            HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
+            Bool = searchList(HashedName, Clients),
             case Bool of
                 true ->
                     Pid ! {self(), ok};
