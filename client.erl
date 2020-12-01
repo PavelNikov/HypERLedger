@@ -24,6 +24,7 @@ choose() ->
     io:format("- If you have to type in a string of characters, make sure to end with a period~n"),
     timer:sleep(10),
 
+    clr(),
     printLine(),
     io:format("hypERLedger CLIENT APPLICATION"),
     printLine(),
@@ -44,13 +45,14 @@ choose() ->
 
 % Register Client with a new secret name
 registerClient() ->
+    clr(),
     printLine(),
     io:format("REGISTER CLIENT"),
     printLine(),
-    {ok, Sname} = io:read("Type in a secret name for your new account: "),
+    {ok, SecretName} = io:read("Type in a secret name for your new account: "),
     Ca = whereis(ca),
-    SecretName = io_lib:format("~s",[atom_to_list(Sname)]),
-    Ca ! {register, self(), SecretName},
+    %SecretName = io_lib:format("~s",[atom_to_list(Sname)]),
+    Ca ! {register, self(), atom_to_list(SecretName)},
     receive
         {Ca, ok} ->
             timer:sleep(100),
@@ -59,15 +61,15 @@ registerClient() ->
     end.
 
 login() ->
+    clr(),
     printLine(),
     io:format("LOGIN"),
     printLine(),
     io:format("INFO: Make sure no one is looking over your shoulder...~n"),
-    {ok, Sname} = io:read("Type in your secret name to enter your wallet: "),
+    {ok, SecretName} = io:read("Type in your secret name to enter your wallet: "),
     Ca = whereis(ca),
     % Try logging in with secret name
-    SecretName = io_lib:format("~s",[atom_to_list(Sname)]),
-    Ca ! {login, self(), SecretName},
+    Ca ! {login, self(), atom_to_list(SecretName)},
     % Wait for answer from CA
     receive 
         {Ca, ok} ->
@@ -78,6 +80,7 @@ login() ->
     end.
 
 wallet(From) ->
+    clr(),
     printLine(),
     io:format("~p's WALLET", [From]),
     printLine(),
@@ -100,6 +103,7 @@ wallet(From) ->
     end.
 
 sendMoney(From) ->
+    clr(),
     printLine(),
     io:format("TRANSACTION ZONE"),
     printLine(),
@@ -114,6 +118,7 @@ sendMoney(From) ->
     end.
 
 newTransaction(From) ->
+    clr(),
     {ok, To} = io:read("Who do you want to send hyperCoins to?  "),
     io:format("~n"),
     {ok, Amount} = io:read("How many hyperCoins do you want to send?  "),
@@ -132,13 +137,21 @@ newTransaction(From) ->
     end,
     receive
         {Ca, ok} ->
+            printLine(),
             io:format("Transaction complete~n"),
             io:format("Bye Bye Hypercoins"),
             printLine(),
+            sendMoney(From);
+        {Ca, nope} ->
+            printLine(),
+            io:format("Transaction failed, please retry~n"),
+            printLine(),
             sendMoney(From)
+            
     end.
 
 retrieveBalance(From) ->
+    clr(),
     printLine(),
     io:format("ACCOUNT BALANCE"),
     printLine(),
@@ -152,3 +165,6 @@ retrieveBalance(From) ->
 
 printLine() ->
     io:format("~n================================================================~n").
+
+clr() ->
+    io:format("\e[H\e[J").

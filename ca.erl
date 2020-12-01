@@ -2,7 +2,7 @@
 -export([ca_init/1, includeTx/2]).
 -import('lists', [append/2]).
 -import('node',[node_code/2]).
--import('helper',[searchList/2]).
+-import('helper',[searchList/2, binaryToHex/1]).
 
 % Don't forget to unregister
 
@@ -15,24 +15,22 @@ ca_init(Nodes) ->
 ca_code(Nodes, Clients) ->
     receive
         {register, Pid, SecretName} -> 
-           crypto:start(),
-            HInfo = "register",
-            HashedName = crypto:mac(hmac, sha256, SecretName, <<"security">>),
+            crypto:start(),
+            HashedName =  helper:binaryToHex(crypto:mac(hmac, sha256, SecretName, "security")),
             Bool = helper:searchList(HashedName, Clients),
             case Bool of
                 false ->
                     Pid ! {self(), ok};
                 true ->
-                    io:format("Client already exist, please log in"),
+                    io:format("Client already exist, please log in instead~n"),
                     Pid ! {self(), nope}
             end,
             ca_code(Nodes, [HashedName | Clients]);
 
         {login, Pid, SecretName} -> 
             crypto:start(),
-            HInfo = "register",
-            HashedName = crypto:mac(hmac, sha256, SecretName, <<"security">>),
-            Bool = helper:searchList(HashedName, Clients),
+            HexName = helper:binaryToHex(crypto:mac(hmac, sha256, SecretName, "security")),
+            Bool = helper:searchList(HexName, Clients),
             case Bool of
                 true ->
                     Pid ! {self(), ok};
@@ -43,10 +41,15 @@ ca_code(Nodes, Clients) ->
 
         {Client, From, To, Amount} ->
             crypto:start(),
-            HashedFrom = crypto:mac(hmac, sha256, From, <<"security">>),
+            HashedFrom = helper:binaryToHex(crypto:mac(hmac, sha256, atom_to_list(From), "security")),
+            % Send Tx with puublic addresses to TxPool
             txIncluder ! {HashedFrom, To, Amount},
-            io:format("INFO: Now would be sending to miner~n"),
-            Client ! {self(), ok},
+            receive
+                {txIncluder, ok} ->
+                    Client ! {self(), ok};
+                {txIncluder, nope} ->
+                    Client ! {self(), nope}
+            end,
             ca_code(Nodes, Clients)
     end.
 

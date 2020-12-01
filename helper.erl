@@ -1,5 +1,6 @@
 -module(helper).
--export([printList/2, automator/1, searchList/2]).
+-export([printList/2, automator/1, 
+        searchList/2, binaryToHex/1]).
 
 printList(Message, List) ->
     io:format("~p: ~p~n", [Message, List]).
@@ -34,3 +35,6 @@ searchList(Item, List) ->
         false ->
             searchList(Item, R)
     end.
+
+binaryToHex(Binary) ->
+    io:format("<<~s>>~n", [[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ]]).
