@@ -17,7 +17,7 @@ ca_code(Nodes, Clients) ->
         {register, Pid, SecretName} -> 
            crypto:start(),
             HInfo = "register",
-            HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
+            HashedName = crypto:mac(hmac, sha256, SecretName, <<"security">>),
             Bool = helper:searchList(HashedName, Clients),
             case Bool of
                 false ->
@@ -26,12 +26,12 @@ ca_code(Nodes, Clients) ->
                     io:format("Client already exist, please log in"),
                     Pid ! {self(), nope}
             end,
-            ca_code(Nodes, [SecretName | Clients]);
+            ca_code(Nodes, [HashedName | Clients]);
 
         {login, Pid, SecretName} -> 
             crypto:start(),
-            HInfo = "login",
-            HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
+            HInfo = "register",
+            HashedName = crypto:mac(hmac, sha256, SecretName, <<"security">>),
             Bool = helper:searchList(HashedName, Clients),
             case Bool of
                 true ->
@@ -42,7 +42,9 @@ ca_code(Nodes, Clients) ->
             ca_code(Nodes, Clients);
 
         {Client, From, To, Amount} ->
-            txIncluder ! {From, To, Amount},
+            crypto:start(),
+            HashedFrom = crypto:mac(hmac, sha256, From, <<"security">>),
+            txIncluder ! {HashedFrom, To, Amount},
             io:format("INFO: Now would be sending to miner~n"),
             Client ! {self(), ok},
             ca_code(Nodes, Clients)

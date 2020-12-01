@@ -49,7 +49,7 @@ registerClient() ->
     printLine(),
     {ok, Sname} = io:read("Type in a secret name for your new account: "),
     Ca = whereis(ca),
-    SecretName = io_lib:format("~p",[Sname]),
+    SecretName = io_lib:format("~s",[atom_to_list(Sname)]),
     Ca ! {register, self(), SecretName},
     receive
         {Ca, ok} ->
