@@ -1,6 +1,7 @@
 -module(client).
 -import('lists', [append/2]).
 -import('string', [join/2]).
+-import('main', []).
 -export([main/0, 
         login/0, 
         choose/0, 
