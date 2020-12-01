@@ -25,7 +25,7 @@ ca_code(Clients) ->
 
         {login, Pid, SecretName} -> 
             crypto:start(),
-            HInfo = "register",
+            HInfo = "login",
             HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
             Bool = searchList(HashedName, Clients),
             case Bool of
