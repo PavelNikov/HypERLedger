@@ -4,18 +4,6 @@
 -import(string, [join/2]).
 -export([main/0,node_code/2]).
 
-main() ->
-    % Pid1 = spawn(?MODULE, node_code, [[{{"None", "None", "None", "None", "None"}, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>}], []]),
-    % Pid2 = spawn(?MODULE, node_code, [[{{"None", "None", "None", "None", "None"}, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>}], []]),
-    % Group = [Pid1, Pid2],
-    % Pid1 ! {Group},
-    % Pid2 ! {Group},
-    % % Pid1 ! {{"Me", "You", 5, 200, 305}, <<27,56,253,239,38,191,119,10,129,86,191,11,40,195,62,243,243,136,238,110>>},
-    % % Pid1 ! {{"He", "Her", 5, 195, 310}, <<37,51,111,20,179,159,162,246,192,112,66,51,68,61,54,112,2,202,47,222>>},
-    % Pid1 ! {{"Me", "You", 5}},
-    ok.
-    % Pid ! {{"You", "Me", 5, 200, 305}, 8797766}.
-
 node_code(Ledger, Group) ->
     % io:format("~p~n", [Ledger]),
 
