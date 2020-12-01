@@ -7,7 +7,6 @@
         login/0, 
         choose/0, 
         registerClient/0, 
-        caStuff/1,
         sendMoney/1]).
 
 % Cient Application to send Txs to the Central Authority
@@ -122,7 +121,7 @@ newTransaction(From) ->
     Answer = io:get_chars("=>", 2),
     if
         Answer == "ok" ->
-            ca ! {self(), To, From, Amount};
+            ca ! {self(), From, To, Amount};
         Answer == "no" ->
             sendMoney(From);
         Answer == "qq" ->
@@ -147,55 +146,6 @@ retrieveBalance(From) ->
     case Choice of
         1 ->
             wallet(From)
-    end.
-
-caStuff(Clients) ->
-    receive
-        {register, Pid, SecretName} -> 
-            crypto:start(),
-            HInfo = "register",
-            HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
-            Bool = searchList(HashedName, Clients),
-            case Bool of
-                false ->
-                    Pid ! {self(), ok};
-                true ->
-                    io:format("Client already exist, please log in"),
-                    Pid ! {self(), nope}
-            end,
-            caStuff([SecretName | Clients]);
-
-        {login, Pid, SecretName} -> 
-            crypto:start(),
-            HInfo = "register",
-            HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
-            Bool = searchList(HashedName, Clients),
-            case Bool of
-                true ->
-                    Pid ! {self(), ok};
-                false ->
-                    Pid ! {self(), nope}
-            end,
-            caStuff(Clients);
-
-        {Client, To, From, Amount} ->
-            io:format("INFO: Now would be sending to miner~n"),
-            Client ! {self(), ok},
-            caStuff(Clients)
-    end.
-
-searchList(Item, []) ->
-    false;
-
-searchList(Item, List) ->
-
-    [Entry | R] = List,
-    Bool = (Item == Entry),
-    case Bool of
-        true ->
-            true;
-        false ->
-            searchList(Item, R)
     end.
 
 printLine() ->
