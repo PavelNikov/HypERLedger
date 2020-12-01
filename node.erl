@@ -35,20 +35,20 @@ node_code(Ledger, Group) ->
             case Bool of
                 true -> 
                     io:format("The hash values match. Ledger is updated. ~p~n",[self()]),
-                    io:format("~p~n", [Hash]),
+                    % io:format("~p~n", [Hash]),
                     node_code([{{From, To, Amount, NSFrom, NSTo}, NHash}|Ledger], Group);
                 false -> 
                     io:format("The hash values don't match. Transaction is rejected. ~p~n",[self()]),
-                    io:format("~p~n", [Hash]),
+                    % io:format("~p~n", [Hash]),
                     node_code(Ledger, Group)
             end;
 
         % Miner Mode:
-        {{From, To, Amount}} ->
+        {From, To, Amount} ->
             SenderBalance = search_sender_current_balance(From, Ledger),
-            % io:format("~p~n", [SenderBalance]),
+            io:format("~p~n", [SenderBalance]),
             ReceiverBalance = search_receiver_current_balance(To, Ledger),
-            % io:format("~p~n", [ReceiverBalance]),
+            io:format("~p~n", [ReceiverBalance]),
             NSFrom = SenderBalance - Amount,
             NSTo = ReceiverBalance + Amount,
             Bool = (SenderBalance >= Amount),
@@ -70,7 +70,9 @@ node_code(Ledger, Group) ->
             
         % Node receives the list of peer nodes to be able to multicast later on.
         {List_of_Nodes} ->
+            % io:format("Got the list~n"),
             node_code(Ledger, List_of_Nodes)
+            
 
     end.
 
@@ -78,11 +80,13 @@ search_sender_current_balance(_, []) ->
     0;
 search_sender_current_balance(Sender, [First_Block|Tail]) ->
     {{User1,_,_,User_Balance1,_},_} = First_Block,
+    % io:format("~p~n", [User1]),
     Bool1 = (User1 == Sender),
     case Bool1 of
         true -> User_Balance1;
         false -> 
             {{_,User2,_,_,User_Balance2},_} = First_Block,
+            % io:format("~p~n", [User1]),
             Bool2 = (User2 == Sender),
             case Bool2 of
                 true -> User_Balance2;

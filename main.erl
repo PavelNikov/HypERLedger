@@ -8,8 +8,6 @@
         shuffleList/1,
         sendToMiner/5]).
 
-% TODO: For some reason, some processes don't hash correctly. Run the code.
-
 % ----------------------------------
 % Main Process that spawns stuff
 % ----------------------------------
@@ -18,11 +16,12 @@ init() ->
     timer:sleep(1000),
     TxIncluder = spawn(?MODULE, includeTx, [[], Nodes]),
     timer:sleep(1000),
+    [X ! {Nodes} || X <- Nodes],
+    timer:sleep(500),
     spawn(?MODULE, automator, [TxIncluder]),
     timer:sleep(1000),
     
     % Share the group with the nodes so they can multicast.
-    [X ! {Nodes} || X <- Nodes],
     ok.
 
 % ----------------------------------
@@ -54,8 +53,10 @@ automator(Recipient) ->
     % % Recipient ! {"CA", "peter", 200},
     % % timer:sleep(500),
     Recipient ! {"CA", "nina", 10},
-    timer:sleep(500),
+    timer:sleep(1000),
     Recipient ! {"CA", "paul", 5},
+    timer:sleep(1000),
+    Recipient ! {"nina", "paul", 5},
     timer:sleep(500).
 
 % ----------------------------------
@@ -86,7 +87,7 @@ sendToMiner(Pool, Nodes, From, To, Amount) ->
         length(Pool) > 0 ->
             [{From, To, Amount} | T] = Pool,
             [NextMiner | R] = Nodes,
-            NextMiner ! {{From, To, Amount}},
+            NextMiner ! {From, To, Amount},
             includeTx(T, R);
         true ->
             includeTx(Pool, Nodes)
