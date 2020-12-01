@@ -14,12 +14,13 @@
 init() ->
     Nodes = createNodeList([], 15),
     timer:sleep(1000),
+    register(ca, spawn(?MODULE, ca_code, [Nodes])),
     TxIncluder = spawn(?MODULE, includeTx, [[], Nodes]),
     timer:sleep(1000),
     [X ! {Nodes} || X <- Nodes],
     timer:sleep(500),
-    spawn(?MODULE, automator, [TxIncluder]),
-    timer:sleep(1000),
+    % spawn(?MODULE, automator, [TxIncluder]),
+    % timer:sleep(1000),
     
     % Share the group with the nodes so they can multicast.
     ok.
@@ -59,6 +60,20 @@ automator(Recipient) ->
     Recipient ! {"nina", "paul", 5},
     timer:sleep(500).
 
+searchList(Item, []) ->
+    false;
+
+searchList(Item, List) ->
+
+    [Entry | R] = List,
+    Bool = (Item == Entry),
+    case Bool of
+        true ->
+            true;
+        false ->
+            searchList(Item, R)
+    end.
+
 % ----------------------------------
 % Function where the Includer process runs 
 % that includes new TXs into the TxPool.
@@ -91,4 +106,27 @@ sendToMiner(Pool, Nodes, From, To, Amount) ->
             includeTx(T, R);
         true ->
             includeTx(Pool, Nodes)
+    end.
+
+ca_code(Clients) ->
+    receive
+        {register, Pid, SecretName} -> 
+            io:format("INFO: ca should hash(~p) and save/check hash in list. send ok or nope~n~n", [SecretName]),
+            Pid ! {self(), ok},
+            ca_code([SecretName | Clients]);
+
+        {login, Pid, SecretName} -> 
+            Bool = searchList(SecretName, Clients),
+            case Bool of
+                true ->
+                    Pid ! {self(), ok};
+                false ->
+                    Pid ! {self(), nope}
+            end,
+            ca_code(Clients);
+
+        {Client, To, From, Amount} ->
+            io:format("INFO: Now would be sending to miner~n"),
+            Client ! {self(), ok},
+            ca_code(Clients)
     end.
