@@ -6,7 +6,7 @@
 init() ->
     Nodes = createNodeList([], 15),
     timer:sleep(1000),
-    register(ca, spawn(ca, ca_code, [Nodes])),
+    register(ca, spawn(ca, ca_init, [Nodes])),
     [X ! {Nodes} || X <- Nodes],
     timer:sleep(500).
 
