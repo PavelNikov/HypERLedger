@@ -3,7 +3,7 @@
 -import('string', [join/2]).
 -import('main', []).
 -import(crypto,[start/0, hmac/3, mac/4]).
--export([main/0, 
+-export([init/0, 
         login/0, 
         choose/0, 
         registerClient/0, 
@@ -13,9 +13,9 @@
 % Cient Application to send Txs to the Central Authority
 
 
-main() ->
-    spawn(?MODULE, choose, []),
-    register(fakeCa, spawn(?MODULE, caStuff, [[]])).
+init() ->
+    spawn(?MODULE, choose, []).
+    % register(fakeCa, spawn(?MODULE, caStuff, [[]])).
 
 choose() ->
     printLine(),
@@ -49,10 +49,10 @@ registerClient() ->
     io:format("REGISTER CLIENT"),
     printLine(),
     {ok, SecretName} = io:read("Type in a secret name for your new account: "),
-    FakeCa = whereis(fakeCa),
-    FakeCa ! {register, self(), SecretName},
+    Ca = whereis(ca),
+    Ca ! {register, self(), SecretName},
     receive
-        {FakeCa, ok} ->
+        {Ca, ok} ->
             timer:sleep(100),
             io:format("Now you should be able to login with your secret name~n"),
             login()
@@ -64,14 +64,14 @@ login() ->
     printLine(),
     io:format("INFO: Make sure no one is looking over your shoulder...~n"),
     {ok, SecretName} = io:read("Type in your secret name to enter your wallet: "),
-    FakeCa = whereis(fakeCa),
+    Ca = whereis(ca),
     % Try logging in with secret name
-    FakeCa ! {login, self(), SecretName},
+    Ca ! {login, self(), SecretName},
     % Wait for answer from CA
     receive 
-        {FakeCa, ok} ->
+        {Ca, ok} ->
             wallet(SecretName);
-        {FakeCa, nope} ->
+        {Ca, nope} ->
             io:format("WARNING: No match found for ~p. Please make sure it's spelled correctly~n", [SecretName]),
             login()
     end.
@@ -118,11 +118,11 @@ newTransaction(From) ->
     {ok, Amount} = io:read("How many hyperCoins do you want to send?  "),
     io:format("~nWARNING: You are about to send ~p hyperCoins to ~w~n", [Amount, To]),
     io:format("Type ok to proceed, no to correct your transaction or qq to stop everything~n"),
-    FakeCa = whereis(fakeCa),
+    Ca = whereis(ca),
     Answer = io:get_chars("=>", 2),
     if
         Answer == "ok" ->
-            FakeCa ! {self(), To, From, Amount};
+            ca ! {self(), To, From, Amount};
         Answer == "no" ->
             sendMoney(From);
         Answer == "qq" ->
@@ -130,7 +130,7 @@ newTransaction(From) ->
             exit(self(), ok)
     end,
     receive
-        {FakeCa, ok} ->
+        {Ca, ok} ->
             io:format("Transaction complete~n"),
             io:format("Bye Bye Hypercoins"),
             printLine(),

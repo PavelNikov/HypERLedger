@@ -13,7 +13,7 @@ ca_code(Clients) ->
            crypto:start(),
             HInfo = "register",
             HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
-            Bool = searchList(HashedName, Clients),
+            Bool = helper:searchList(HashedName, Clients),
             case Bool of
                 false ->
                     Pid ! {self(), ok};
@@ -27,7 +27,7 @@ ca_code(Clients) ->
             crypto:start(),
             HInfo = "login",
             HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
-            Bool = searchList(HashedName, Clients),
+            Bool = helper:searchList(HashedName, Clients),
             case Bool of
                 true ->
                     Pid ! {self(), ok};
@@ -37,6 +37,7 @@ ca_code(Clients) ->
             ca_code(Clients);
 
         {Client, To, From, Amount} ->
+            TxIncluder ! {From, To, Amount},
             io:format("INFO: Now would be sending to miner~n"),
             Client ! {self(), ok},
             ca_code(Clients)
