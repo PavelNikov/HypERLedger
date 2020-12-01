@@ -4,16 +4,18 @@
 -import('node',[node_code/2]).
 -import('helper',[searchList/2]).
 
-ca_code(Clients) ->
-    
-    TxIncluder = spawn(?MODULE, includeTx, [[], Clients]),
+ca_init(Nodes) ->
+    TxIncluder = spawn(?MODULE, includeTx, [[], Nodes]),
+    ca_code(Nodes).
+
+ca_code(Nodes) ->
     
     receive
         {register, Pid, SecretName} -> 
            crypto:start(),
             HInfo = "register",
             HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
-            Bool = helper:searchList(HashedName, Clients),
+            Bool = helper:searchList(HashedName, Nodes),
             case Bool of
                 false ->
                     Pid ! {self(), ok};
@@ -21,26 +23,26 @@ ca_code(Clients) ->
                     io:format("Client already exist, please log in"),
                     Pid ! {self(), nope}
             end,
-            ca_code([SecretName | Clients]);
+            ca_code([SecretName | Nodes]);
 
         {login, Pid, SecretName} -> 
             crypto:start(),
             HInfo = "login",
             HashedName = crypto:mac(hmac, sha256, SecretName, HInfo),
-            Bool = helper:searchList(HashedName, Clients),
+            Bool = helper:searchList(HashedName, Nodes),
             case Bool of
                 true ->
                     Pid ! {self(), ok};
                 false ->
                     Pid ! {self(), nope}
             end,
-            ca_code(Clients);
+            ca_code(Nodes);
 
-        {Client, To, From, Amount} ->
+        {Client, From, To, Amount} ->
             TxIncluder ! {From, To, Amount},
             io:format("INFO: Now would be sending to miner~n"),
             Client ! {self(), ok},
-            ca_code(Clients)
+            ca_code(Nodes)
     end.
 
 % ----------------------------------
