@@ -8,18 +8,16 @@ init() ->
     % unregister(ca),
     % unregister(txIncluder),
 
-    % Start spawning stuff
+    % Spawn Nodes and register ca
     Nodes = createNodeList([], 15),
-    timer:sleep(1000),
     register(ca, spawn(ca, ca_init, [Nodes])),
     [X ! {Nodes} || X <- Nodes],
-    timer:sleep(500).
+    timer:sleep(10).
 
 % ----------------------------------
 % Spawing Nodes and saving their PIDs in a list
 % ----------------------------------
 createNodeList(Nodes, 0) ->
-    printList("Created Nodes list", Nodes),
     Nodes;
 
 createNodeList(Nodes, Num) when Num > 0 ->

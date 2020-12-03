@@ -3,7 +3,7 @@
 -import('string', [join/2]).
 -import('main', []).
 -import(crypto,[start/0, hmac/3, mac/4]).
--export([init/0, 
+-export([client_init/0, 
         login/0, 
         choose/0, 
         registerClient/0, 
@@ -12,7 +12,7 @@
 % Cient Application to send Txs to the Central Authority
 
 
-init() ->
+client_init() ->
     spawn(?MODULE, choose, []).
     % register(fakeCa, spawn(?MODULE, caStuff, [[]])).
 
@@ -87,7 +87,8 @@ wallet(From) ->
     io:format("1. Retrieve Account Balance~n"),
     io:format("2. Send Money~n"),
     io:format("3. Logout~n"),
-    io:format("4. Quit~n"),
+    io:format("4. Show Public Address~n"),
+    io:format("5. Quit~n"),
     
     {ok, Choice} = io:read("=> "),
     case Choice of
@@ -98,10 +99,32 @@ wallet(From) ->
         3 ->
             choose();
         4 ->
+            publicAddress(From);
+        5 ->    
            io:format("QUITTING~n"),
            exit(self(), ok) 
     end.
 
+% ----------------------------------
+% Retrieving Account Balance
+% ----------------------------------
+
+retrieveBalance(From) ->
+    clr(),
+    printLine(),
+    io:format("ACCOUNT BALANCE"),
+    printLine(),
+    io:format("To be implemented~n"),
+    io:format("1. Back~n"),
+    {ok, Choice} = io:read(" "),
+    case Choice of
+        1 ->
+            wallet(From)
+    end.
+
+% ----------------------------------
+% Sending Money to another account
+% ----------------------------------
 sendMoney(From) ->
     clr(),
     printLine(),
@@ -150,19 +173,33 @@ newTransaction(From) ->
             
     end.
 
-retrieveBalance(From) ->
-    clr(),
+% ----------------------------------
+% Retireving public address
+% ----------------------------------
+
+publicAddress(SecretName) ->
     printLine(),
-    io:format("ACCOUNT BALANCE"),
+    io:format("Public Address"),
     printLine(),
-    io:format("To be implemented~n"),
+
+    Ca = whereis(ca),
+    Ca ! {self(), retrievePAddr, SecretName},
+    
+    receive
+        {Ca, PublicAddress} ->
+            io:format("Public Address: ~s~n", [PublicAddress])
+    end,
     io:format("1. Back~n"),
-    {ok, Choice} = io:read(" "),
+    {ok, Choice} = io:read(""),
     case Choice of
         1 ->
-            wallet(From)
+            wallet(SecretName)
     end.
 
+
+% ----------------------------------
+% Helper Functions
+% ----------------------------------
 printLine() ->
     io:format("~n================================================================~n").
 

@@ -8,12 +8,12 @@
 
 ca_init(Nodes) ->
     register(txIncluder, spawn(?MODULE, includeTx, [[], Nodes])),
-    io:format("Line 9~n"),
     ca_code(Nodes, []),
     ok.
 
 ca_code(Nodes, Clients) ->
     receive
+        % register request from client application
         {register, Pid, SecretName} -> 
             crypto:start(),
             HashedName =  helper:binaryToHex(crypto:mac(hmac, sha256, SecretName, "security")),
@@ -27,6 +27,7 @@ ca_code(Nodes, Clients) ->
             end,
             ca_code(Nodes, [HashedName | Clients]);
 
+        % login request from client application
         {login, Pid, SecretName} -> 
             crypto:start(),
             HexName = helper:binaryToHex(crypto:mac(hmac, sha256, SecretName, "security")),
@@ -39,6 +40,7 @@ ca_code(Nodes, Clients) ->
             end,
             ca_code(Nodes, Clients);
 
+        % new transaction to include into Pool from client application
         {Client, From, To, Amount} ->
             crypto:start(),
             HashedFrom = helper:binaryToHex(crypto:mac(hmac, sha256, atom_to_list(From), "security")),
@@ -50,7 +52,15 @@ ca_code(Nodes, Clients) ->
                 {txIncluder, nope} ->
                     Client ! {self(), nope}
             end,
+            ca_code(Nodes, Clients);
+
+        % Request to retreive Public Address from client application
+        {Client, retrievePAddr, SecretName} ->
+            crypto:start(),
+            PAddr = helper:binaryToHex(crypto:mac(hmac, sha256, atom_to_list(SecretName), "security")),
+            Client ! {self(), PAddr},
             ca_code(Nodes, Clients)
+
     end.
 
 % ----------------------------------
