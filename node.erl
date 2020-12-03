@@ -32,20 +32,20 @@ node_code(Ledger, Group) ->
             end;
 
         % Miner Mode:
-        {From, To, Amount} ->
-            SenderBalance = search_sender_current_balance(From, Ledger),
-            io:format("~p~n", [SenderBalance]),
-            ReceiverBalance = search_receiver_current_balance(To, Ledger),
-            io:format("~p~n", [ReceiverBalance]),
+        {TxIncluder, From, To, Amount} ->
+            SenderBalance = search_user_current_balance(From, Ledger),
+            io:format("Sender Balance before tx: ~p~n", [SenderBalance]),
+            ReceiverBalance = search_user_current_balance(To, Ledger),
+            io:format("Receiver Balance before tx: ~p~n", [ReceiverBalance]),
             NSFrom = SenderBalance - Amount,
             NSTo = ReceiverBalance + Amount,
             Bool = (SenderBalance >= Amount),
-            Ca = whereis(ca),
             case Bool of
                 true ->
-                    Ca ! {self(), ok},
+                    TxIncluder ! {self(), ok},
                     % Calculate new Hash
                     [{_, OHash}|_] = Ledger,
+                    % maybe crypto:start() here?
                     Item = io_lib:format("~s~s~w~w~w",[From, To, Amount, NSFrom, NSTo]),
                     NHash = crypto:mac(hmac, sha256, OHash, Item),
                     % Multicast the block
@@ -53,48 +53,33 @@ node_code(Ledger, Group) ->
                     node_code([{{From, To, Amount, NSFrom, NSTo}, NHash}|Ledger], Group);
     
                 false ->
-                    Ca ! {self(), nope},
+                    TxIncluder ! {self(), nope},
                     node_code(Ledger, Group)
             end;
             
         % Node receives the list of peer nodes to be able to multicast later on.
         {List_of_Nodes} ->
             % io:format("Got the list~n"),
-            node_code(Ledger, List_of_Nodes)
-            
+            node_code(Ledger, List_of_Nodes);
+        
+        %retrieve balance and send ok if it is a number
+        {Ca, retrieveBalance, PublicAddr} ->
+            Balance = search_user_current_balance(PublicAddr, Ledger),
+            Ca ! {self(), ok, Balance}
 
     end.
 
-search_sender_current_balance(_, []) ->
+search_user_current_balance(_, []) ->
     0;
-search_sender_current_balance(Sender, [First_Block|Tail]) ->
-    {{User1,_,_,User_Balance1,_},_} = First_Block,
-    % io:format("~p~n", [User1]),
-    Bool1 = (User1 == Sender),
+search_user_current_balance(User, [First_Block|Tail]) ->
+    {{Sender,Receiver,_,SenderBalance,ReceiverBalance},_} = First_Block,
+    Bool1 = (Sender == User),
     case Bool1 of
-        true -> User_Balance1;
+        true -> SenderBalance;
         false -> 
-            {{_,User2,_,_,User_Balance2},_} = First_Block,
-            % io:format("~p~n", [User1]),
-            Bool2 = (User2 == Sender),
+            Bool2 = (Receiver == User),
             case Bool2 of
-                true -> User_Balance2;
-                false -> search_sender_current_balance(Sender, Tail)
-            end
-    end.
-
-search_receiver_current_balance(_, []) ->
-    0;
-search_receiver_current_balance(Sender, [First_Block|Tail]) ->
-    {{User1,_,_,User_Balance1,_},_} = First_Block,
-    Bool1 = (User1 == Sender),
-    case Bool1 of
-        true -> User_Balance1;
-        false -> 
-            {{_,User2,_,_,User_Balance2},_} = First_Block,
-            Bool2 = (User2 == Sender),
-            case Bool2 of
-                true -> User_Balance2;
-                false -> search_sender_current_balance(Sender, Tail)
+                true -> ReceiverBalance;
+                false -> search_user_current_balance(User, Tail)
             end
     end.

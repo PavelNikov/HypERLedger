@@ -1,6 +1,6 @@
 -module(helper).
 -export([printList/2, automator/1, 
-        searchList/2, binaryToHex/1]).
+        searchList/2, binaryToHex/1, calculatePAddr/1]).
 
 printList(Message, List) ->
     io:format("~p: ~p~n", [Message, List]).
@@ -22,7 +22,7 @@ automator(Recipient) ->
     timer:sleep(500).
 
 
-searchList(Item, []) ->
+searchList(_, []) ->
     false;
 
 searchList(Item, List) ->
@@ -36,5 +36,9 @@ searchList(Item, List) ->
             searchList(Item, R)
     end.
 
+calculatePAddr(SecretName) ->
+    crypto:start(),
+    helper:binaryToHex(crypto:mac(hmac, sha256, atom_to_list(SecretName), "security")).
+
 binaryToHex(Binary) ->
-    io:format("<<~s>>~n", [[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ]]).
+    io_lib:format("0x~s",[[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ]]).
