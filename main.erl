@@ -4,10 +4,6 @@
 -import(helper, [printList/2, automator/1]).
 
 init() ->
-    % Unregister some stuff to avoid errors. Only uncomment the line if you enconter the error: ** exception error: bad argument BLAAAAAHHHHH
-    % unregister(ca),
-    % unregister(txIncluder),
-
     % Spawn Nodes and register ca
     Nodes = createNodeList([], 15),
     register(ca, spawn(ca, ca_init, [Nodes])),
