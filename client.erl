@@ -159,15 +159,17 @@ newTransaction(From) ->
             exit(self(), ok)
     end,
     receive
-        {Ca, ok} ->
+        {Ca, ok, Message} ->
             printLine(),
+            io:format("~s~n", [Message]),
             io:format("Transaction complete~n"),
             io:format("Bye Bye Hypercoins"),
             printLine(),
             sendMoney(From);
-        {Ca, nope} ->
+        {Ca, nope, Message} ->
             printLine(),
             io:format("Transaction failed, please retry~n"),
+            io:format("~s~n", [Message]),
             printLine(),
             sendMoney(From)
             

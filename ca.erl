@@ -45,12 +45,12 @@ ca_code(Nodes, Clients) ->
             crypto:start(),
             HashedFrom = helper:binaryToHex(crypto:mac(hmac, sha256, atom_to_list(From), "security")),
             % Send Tx with puublic addresses to TxPool
-            txIncluder ! {HashedFrom, To, Amount},
+            txIncluder ! {self(), HashedFrom, To, Amount},
             receive
-                {txIncluder, ok} ->
-                    Client ! {self(), ok};
-                {txIncluder, nope} ->
-                    Client ! {self(), nope}
+                {txIncluder, ok, Message} ->
+                    Client ! {self(), ok, Message};
+                {txIncluder, nope, Message} ->
+                    Client ! {self(), nope, Message}
             end,
             ca_code(Nodes, Clients);
 
@@ -71,11 +71,11 @@ ca_code(Nodes, Clients) ->
 % ----------------------------------
 includeTx(Pool, Nodes) ->
     receive
-        {From, To, Amount} ->
+        {Ca, From, To, Amount} ->
             UpdatedTxPool = append(Pool, [{From, To, Amount}]),
             io:format("From: ~p, To: ~p, Amount: ~p ~n", [From, To, Amount]),
             ShuffledNodes = shuffleList(Nodes),
-            sendToMiner(UpdatedTxPool, ShuffledNodes, From, To, Amount);
+            sendToMiner(Ca, UpdatedTxPool, ShuffledNodes, From, To, Amount);
 
         {printPool} ->
             io:format("TxPool: ~p~n", [Pool])
@@ -86,12 +86,20 @@ shuffleList(List) ->
     [X||{_,X} <- lists:sort([{rand:uniform(), Miner} || Miner <- List])].
 
 % take oldest tx and next Miner
-sendToMiner(Pool, Nodes, From, To, Amount) ->
+sendToMiner(Ca, Pool, Nodes, From, To, Amount) ->
     if 
         length(Pool) > 0 ->
             [{From, To, Amount} | T] = Pool,
             [NextMiner | R] = Nodes,
             NextMiner ! {From, To, Amount},
+            receive
+                {NextMiner, ok} ->
+                    Message = io:format("Sender has enough funds.~n"),
+                    Ca ! {self(), ok, Message};
+                {NextMiner, nope} ->
+                    Message = io:format("Sender does not have enough funds.~n"),
+                    Ca ! {self(), nope, Message}
+            end,
             includeTx(T, R);
         true ->
             includeTx(Pool, Nodes)

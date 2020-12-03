@@ -40,9 +40,10 @@ node_code(Ledger, Group) ->
             NSFrom = SenderBalance - Amount,
             NSTo = ReceiverBalance + Amount,
             Bool = (SenderBalance >= Amount),
+            Ca = whereis(ca),
             case Bool of
                 true ->
-                    io:format("Sender has enough funds.~n"),
+                    Ca ! {self(), ok},
                     % Calculate new Hash
                     [{_, OHash}|_] = Ledger,
                     Item = io_lib:format("~s~s~w~w~w",[From, To, Amount, NSFrom, NSTo]),
@@ -52,7 +53,7 @@ node_code(Ledger, Group) ->
                     node_code([{{From, To, Amount, NSFrom, NSTo}, NHash}|Ledger], Group);
     
                 false ->
-                    io:format("Sender does not have enough funds.~n"),
+                    Ca ! {self(), nope},
                     node_code(Ledger, Group)
             end;
             
