@@ -13,4 +13,4 @@ Typing the following commands will compile everything that needs to be compiled,
 ```
 
 # Developers
-***REMOVED***
+@pewepow and @sirfrankiecrisp
