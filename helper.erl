@@ -1,6 +1,7 @@
 -module(helper).
 -export([printList/2, automator/1, 
         searchList/2, binaryToHex/1, calculatePAddr/1]).
+-import(crypto,[start/0, hmac/3, mac/4]).
 
 printList(Message, List) ->
     io:format("~p: ~p~n", [Message, List]).
