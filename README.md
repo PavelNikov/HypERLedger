@@ -9,7 +9,8 @@ Typing the following commands will compile everything that needs to be compiled,
 ```bash
 > erl -make
 > erl
-> test:start().
+> main:init().
+> client:init().
 ```
 
 # Developers
