@@ -27,6 +27,8 @@ loop(Nodes, Clients) ->
                             Pid ! {self(), ok};
                         {TxIncluder, nope, _} ->
                             Pid ! {self(), nope}
+                        after 2000 ->
+                            timeout
                     end,
                     loop(Nodes, [HashedName|Clients]);
                 true ->
@@ -59,6 +61,8 @@ loop(Nodes, Clients) ->
                     Client ! {self(), ok, Message};
                 {TxIncluder, nope, Message} ->
                     Client ! {self(), nope, Message}
+                after 2000 ->
+                    timeout
             end,
             loop(Nodes, Clients);
 
@@ -90,6 +94,8 @@ loop(Nodes, Clients) ->
             receive
                 {Node, ok, Ledger} ->
                     Client ! {self(), ok, Ledger}
+                after 2000 ->
+                    timeout
             end,
             loop(ShuffledNodes, Clients)
     end.

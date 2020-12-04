@@ -70,6 +70,8 @@ registerClient() ->
             io:format("WARNING: Something went wrong creating your account~n"),
             io:format("WARNING: ~s", [M]),
             choose()
+        after 2000 ->
+            timeout
     end.
 
 login() ->
@@ -93,6 +95,8 @@ login() ->
                 {Ca, nope} ->
                     io:format("WARNING: No match found for ~p. Please make sure it's spelled correctly~n", [SecretName]),
                     login()
+                after 2000 ->
+                    timeout
             end
     end.
 
@@ -145,6 +149,8 @@ retrieveBalance(From) ->
             io:format("~p~n", [Balance]);
         {Ca, nope} ->
             io:format("Problem retrieving account balance~n")
+        after 2000 ->
+            timeout
     end,
     io:format("1. Back~n"),
     {ok, Choice} = io:read(""),
@@ -170,6 +176,8 @@ publicAddress(SecretName) ->
     receive
         {Ca, PublicAddress} ->
             io:format("~s~n", [PublicAddress])
+        after 2000 ->
+            timeout
     end,
     io:format("1. Back~n"),
     {ok, Choice} = io:read(""),
@@ -259,6 +267,8 @@ printBlockchain() ->
         {Ca, ok, ChainData} ->
             %[io:format("~p~n", [X]) || X <- ChainData]
             printList(ChainData)
+        after 2000 ->
+            timeout
     end,
     io:format("1. Back~n"),
     {ok, Answer} = io:read("=> "),

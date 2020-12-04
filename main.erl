@@ -7,7 +7,8 @@ init() ->
     % Spawn Nodes and supervisor
     Nodes = createNodeList([], 15),
     spawn(?MODULE, supervise, [Nodes]),
-    [X ! {Nodes} || X <- Nodes].
+    [X ! {Nodes} || X <- Nodes],
+    ok.
 
 % ----------------------------------
 % Spawing Nodes and saving their PIDs in a list
