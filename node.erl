@@ -59,13 +59,18 @@ node_code(Ledger, Group) ->
             
         % Node receives the list of peer nodes to be able to multicast later on.
         {List_of_Nodes} ->
-            % io:format("Got the list~n"),
             node_code(Ledger, List_of_Nodes);
         
-        %retrieve balance and send ok if it is a number
+        % retrieve balance and send ok if it is a number
         {Ca, retrieveBalance, PublicAddr} ->
             Balance = search_user_current_balance(PublicAddr, Ledger),
-            Ca ! {self(), ok, Balance}
+            Ca ! {self(), ok, Balance},
+            node_code(Ledger, Group);
+        
+        % Send Ledger
+        {Ca, sendLedger} ->
+            Ca ! {self(), ok, Ledger},
+            node_code(Ledger, Group)
 
     end.
 

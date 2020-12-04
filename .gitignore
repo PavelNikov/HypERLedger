@@ -8,3 +8,5 @@ helper.beam
 ca_old.erl
 ca_old.beam
 test.beam
+pow.erl
+pow.beam

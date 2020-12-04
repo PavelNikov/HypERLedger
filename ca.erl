@@ -21,18 +21,21 @@ ca_code(Nodes, Clients) ->
             case Bool of
                 false ->
                     TxIncluder = whereis(txIncluder),
-                    TxIncluder ! {self(), "0x494A64075CBEDAEE8C4DE3D13D5ED2DAC4FAC9A25DD62B7853F953D7473A9326", HashedName, 500},
+                    TxIncluder ! {self(), "a494A64075CBEDAEE8C4DE3D13D5ED2DAC4FAC9A25DD62B7853F953D7473A9326", HashedName, 500},
+                    %[Client|HashedName] = NewClientsList,
                     receive
                         {TxIncluder, ok, _} ->
                             Pid ! {self(), ok};
                         {TxIncluder, nope, _} ->
                             Pid ! {self(), nope}
-                    end;
+                    end,
+                    ca_code(Nodes, [HashedName|Clients]);
                 true ->
-                    io:format("Client already exist, please log in instead~n"),
-                    Pid ! {self(), nope}
-            end,
-            ca_code(Nodes, [HashedName | Clients]);
+                    M = "Client already exist, please log in instead~n",
+                    Pid ! {self(), nope, M},
+                    ca_code(Nodes, Clients)
+                    
+            end;
 
         % login request from client application
         {login, Pid, SecretName} -> 
@@ -51,7 +54,7 @@ ca_code(Nodes, Clients) ->
             HashedFrom = helper:calculatePAddr(From),
             % Send Tx with public addresses to TxPool
             TxIncluder = whereis(txIncluder),
-            TxIncluder ! {self(), HashedFrom, To, Amount},
+            TxIncluder ! {self(), HashedFrom, atom_to_list(To), Amount},
             receive
                 {TxIncluder, ok, Message} ->
                     Client ! {self(), ok, Message};
@@ -69,7 +72,8 @@ ca_code(Nodes, Clients) ->
         % Request to retreive client account balance
         {Client, retrieveBalance, SecretName} ->
             PublicAddr = helper:calculatePAddr(SecretName),
-            [Node | _] = Nodes,
+            ShuffledNodes = shuffleList(Nodes),
+            [Node | _] = ShuffledNodes,
             Node ! {self(), retrieveBalance, PublicAddr},
             receive 
                 {Node, ok, Balance} ->
@@ -77,7 +81,18 @@ ca_code(Nodes, Clients) ->
                 {Node, nope} ->
                     Client ! {self(), nope}
             end,
-            ca_code(Nodes, Clients)
+            ca_code(ShuffledNodes, Clients);
+
+        % Request to send complete ledger
+        {Client, printChain} ->
+            ShuffledNodes = shuffleList(Nodes),
+            [Node | _] = ShuffledNodes,
+            Node ! {self(), sendLedger},
+            receive
+                {Node, ok, Ledger} ->
+                    Client ! {self(), ok, Ledger}
+            end,
+            ca_code(ShuffledNodes, Clients)
     end.
 
 % ----------------------------------

@@ -7,30 +7,29 @@
         login/0, 
         choose/0, 
         registerClient/0, 
-        sendMoney/1]).
+        sendMoney/1,
+        printBlockchain/0,
+        printList/1]).
 
 % Cient Application to send Txs to the Central Authority
 
 
 init() ->
-    spawn(?MODULE, choose, []).
-    % register(fakeCa, spawn(?MODULE, caStuff, [[]])).
-
-choose() ->
     printLine(),
     io:format("GENERAL INSTRUCTIONS"),
     printLine(),
     io:format("- If there is a choice with numbers, type in the correct number and hit ENTER~n"),
     io:format("- If you have to type in a string of characters, make sure to end with a period~n"),
-    timer:sleep(10),
-
-    clr(),
+    spawn(?MODULE, choose, []).
+    
+choose() ->
     printLine(),
     io:format("hypERLedger CLIENT APPLICATION"),
     printLine(),
     io:format("1. Create new account~n"),
     io:format("2. Log in~n"),
-    io:format("3. Quit~n"),
+    io:format("3. Print Blockchain~n"),
+    io:format("4. Quit~n"),
 
     {ok, Choice} = io:read("=> "),
     case Choice of
@@ -41,9 +40,15 @@ choose() ->
             clr(),
             login();
         3 ->
+            clr(),
+            printBlockchain();
+        4 ->
             io:format("EXITING~n"),
             clr(),
-            exit(self(), ok)
+            exit(self(), ok);
+        _ ->
+            clr(),
+            choose()
     end.
 
 % Register Client with a new secret name
@@ -56,12 +61,15 @@ registerClient() ->
     Ca ! {register, self(), SecretName},
     receive
         {Ca, ok} ->
-            io:format("Now you should be able to login with your secret name~n"),
+            %io:format("Now you should be able to login with your secret name~n"),
             clr(),
+            io:format("Success! You may now log in~n"),
             login();
-        {Ca, nope} ->
-            io:format("Something went wrong creating your account~n"),
-            registerClient()
+        {Ca, nope, M} ->
+            clr(),
+            io:format("WARNING: Something went wrong creating your account~n"),
+            io:format("WARNING: ~s", [M]),
+            choose()
     end.
 
 login() ->
@@ -69,18 +77,25 @@ login() ->
     io:format("LOGIN"),
     printLine(),
     io:format("INFO: Make sure no one is looking over your shoulder...~n"),
-    {ok, SecretName} = io:read("Type in your secret name to enter your wallet: "),
-    Ca = whereis(ca),
-    % Try logging in with secret name
-    Ca ! {login, self(), SecretName},
-    % Wait for answer from CA
-    receive 
-        {Ca, ok} ->
-            wallet(SecretName);
-        {Ca, nope} ->
-            io:format("WARNING: No match found for ~p. Please make sure it's spelled correctly~n", [SecretName]),
-            login()
+    {ok, SecretName} = io:read("Type in your secret name to enter your wallet or the number 1 to go back: "),
+    case SecretName of 
+        1 ->
+            clr(),
+            choose();
+        _ ->
+            Ca = whereis(ca),
+            % Try logging in with secret name
+            Ca ! {login, self(), SecretName},
+            % Wait for answer from CA
+            receive 
+                {Ca, ok} ->
+                    wallet(SecretName);
+                {Ca, nope} ->
+                    io:format("WARNING: No match found for ~p. Please make sure it's spelled correctly~n", [SecretName]),
+                    login()
+            end
     end.
+
 
 wallet(From) ->
     clr(),
@@ -96,17 +111,23 @@ wallet(From) ->
     {ok, Choice} = io:read("=> "),
     case Choice of
         1 ->
+            clr(),
             retrieveBalance(From);
         2 ->
+            clr(),
             publicAddress(From);
         3 ->
             clr(),
             sendMoney(From);
         4 ->
+            clr(),
             choose();
         5 ->    
            io:format("QUITTING~n"),
-           exit(self(), ok) 
+           exit(self(), ok);
+        _ ->
+            clr(),
+            wallet(From)
     end.
 
 % ----------------------------------
@@ -114,7 +135,6 @@ wallet(From) ->
 % ----------------------------------
 
 retrieveBalance(From) ->
-    clr(),
     printLine(),
     io:format("ACCOUNT BALANCE"),
     printLine(),
@@ -130,7 +150,10 @@ retrieveBalance(From) ->
     {ok, Choice} = io:read(""),
     case Choice of
         1 ->
-            wallet(From)
+            wallet(From);
+        _ ->
+            clr(),
+            retrieveBalance(From)
     end.
 
 % ----------------------------------
@@ -153,7 +176,10 @@ publicAddress(SecretName) ->
     {ok, Choice} = io:read(""),
     case Choice of
         1 ->
-            wallet(SecretName)
+            wallet(SecretName);
+        _ ->
+            clr(),
+            publicAddress(SecretName)
     end.
 
 
@@ -171,7 +197,10 @@ sendMoney(From) ->
         1 ->
             newTransaction(From);
         2 ->
-            wallet(From)
+            wallet(From);
+        _ ->
+            clr(),
+            sendMoney(From)
     end.
 
 newTransaction(From) ->
@@ -179,20 +208,27 @@ newTransaction(From) ->
     printLine(),
     io:format("TRANSACTION ZONE"),
     printLine(),
+    % {ok, [To]} = io:fread("Who do you want to send hyperCoins to? ", "~w"),
+    % {ok, Amount} = io:read("How many hyperCoins do you want to send?  "),
     {ok, To} = io:read("Who do you want to send hyperCoins to?  "),
     {ok, Amount} = io:read("How many hyperCoins do you want to send?  "),
     io:format("~nWARNING: You are about to send ~p hyperCoins to ~w~n", [Amount, To]),
-    io:format("Type ok to proceed, no to correct your transaction or qq to stop everything~n"),
+    io:format("Type ok to proceed, no to correct your transaction or quit to stop everything~n"),
     Ca = whereis(ca),
-    Answer = io:get_chars("=>", 2),
-    if
-        Answer == "ok" ->
+    {ok, Answer} = io:read("=> "),
+    case Answer of
+        ok ->
             ca ! {self(), From, To, Amount};
-        Answer == "no" ->
+        no ->
+            clr(),
             sendMoney(From);
-        Answer == "qq" ->
+        quit ->
             io:format("EXITING~n"),
-            exit(self(), ok)
+            clr(),
+            exit(self(), ok);
+        _ ->
+            clr(),
+            newTransaction(From)
     end,
     receive
         {Ca, ok, Message} ->
@@ -207,8 +243,33 @@ newTransaction(From) ->
             io:format("~s", [Message]),
             printLine()
     end,
-    timer:sleep(2000),
     sendMoney(From).
+
+% ----------------------------------
+% Print Blockchain
+% ----------------------------------
+
+printBlockchain() ->
+    printLine(),
+    io:format("Overview of all Transactions"),
+    printLine(),
+
+    Ca = whereis(ca),
+    Ca ! {self(), printChain},
+    receive
+        {Ca, ok, ChainData} ->
+            %[io:format("~p~n", [X]) || X <- ChainData]
+            printList(ChainData)
+    end,
+    io:format("1. Back~n"),
+    {ok, Answer} = io:read("=> "),
+    case Answer of
+        1 ->
+            choose();
+        _ ->
+            clr(),
+            printBlockchain()
+    end.
 
 
 % ----------------------------------
@@ -219,3 +280,13 @@ printLine() ->
 
 clr() ->
     io:format("\e[H\e[J").
+
+printList([]) ->
+    io:format("~n");
+
+printList(List) ->
+    [H|T] = List,
+    {{From, To, Amount, NSFrom, NSTo}, Hash} = H,
+    io:format("___________________________________________________~n~n"),
+    io:format("From:~p~nTo: ~p~nAmount: ~w~nNew Balance Sender: ~w~nNew Balance Receiver: ~w~nBlock Hash: ~p~n~n", [From, To, Amount, NSFrom, NSTo, Hash]),
+    printList(T).

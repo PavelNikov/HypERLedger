@@ -29,7 +29,7 @@ searchList(_, []) ->
 searchList(Item, List) ->
 
     [Entry | R] = List,
-    Bool = (Item == Entry),
+    Bool = (Item =:= Entry),
     case Bool of
         true ->
             true;
@@ -42,4 +42,4 @@ calculatePAddr(SecretName) ->
     helper:binaryToHex(crypto:mac(hmac, sha256, atom_to_list(SecretName), "security")).
 
 binaryToHex(Binary) ->
-    io_lib:format("0x~s",[[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ]]).
+    io_lib:format("a~s",[string:lowercase([io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ])]).
