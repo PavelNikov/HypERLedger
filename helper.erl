@@ -2,6 +2,7 @@
 -export([printList/2, automator/1, 
         searchList/2, binaryToHex/1, calculatePAddr/1]).
 -import(crypto,[start/0, hmac/3, mac/4]).
+-import(lists, [flatten/2]).
 
 printList(Message, List) ->
     io:format("~p: ~p~n", [Message, List]).
@@ -42,4 +43,6 @@ calculatePAddr(SecretName) ->
     helper:binaryToHex(crypto:mac(hmac, sha256, atom_to_list(SecretName), "security")).
 
 binaryToHex(Binary) ->
-    io_lib:format("a~s",[string:lowercase([io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ])]).
+    %io_lib:format("b~s",[string:lowercase([io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ])]).
+    % Prepend an a to each hex value to show that it's an address
+    "a" ++ string:lowercase([io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ]).
