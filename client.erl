@@ -57,8 +57,8 @@ registerClient() ->
     io:format("REGISTER CLIENT"),
     printLine(),
     {ok, SecretName} = io:read("Type in a secret name for your new account: "),
+    ca ! {register, self(), SecretName},
     Ca = whereis(ca),
-    Ca ! {register, self(), SecretName},
     receive
         {Ca, ok} ->
             %io:format("Now you should be able to login with your secret name~n"),
@@ -83,10 +83,10 @@ login() ->
             clr(),
             choose();
         _ ->
-            Ca = whereis(ca),
             % Try logging in with secret name
-            Ca ! {login, self(), SecretName},
+            ca ! {login, self(), SecretName},
             % Wait for answer from CA
+            Ca = whereis(ca),
             receive 
                 {Ca, ok} ->
                     wallet(SecretName);
@@ -138,8 +138,8 @@ retrieveBalance(From) ->
     printLine(),
     io:format("ACCOUNT BALANCE"),
     printLine(),
+    ca ! {self(), retrieveBalance, From},
     Ca = whereis(ca),
-    Ca ! {self(), retrieveBalance, From},
     receive
         {Ca, ok, Balance} ->
             io:format("~p~n", [Balance]);
@@ -165,9 +165,8 @@ publicAddress(SecretName) ->
     io:format("Public Address"),
     printLine(),
 
-    Ca = whereis(ca),
-    Ca ! {self(), retrievePAddr, SecretName},
-    
+    ca ! {self(), retrievePAddr, SecretName},
+    Ca = whereis(ca),    
     receive
         {Ca, PublicAddress} ->
             io:format("~s~n", [PublicAddress])
@@ -214,7 +213,6 @@ newTransaction(From) ->
     {ok, Amount} = io:read("How many hyperCoins do you want to send?  "),
     io:format("~nWARNING: You are about to send ~p hyperCoins to ~w~n", [Amount, To]),
     io:format("Type ok to proceed, no to correct your transaction or quit to stop everything~n"),
-    Ca = whereis(ca),
     {ok, Answer} = io:read("=> "),
     case Answer of
         ok ->
@@ -230,6 +228,7 @@ newTransaction(From) ->
             clr(),
             newTransaction(From)
     end,
+    Ca = whereis(ca),
     receive
         {Ca, ok, Message} ->
             printLine(),
@@ -254,8 +253,8 @@ printBlockchain() ->
     io:format("Overview of all Transactions"),
     printLine(),
 
+    ca ! {self(), printChain},
     Ca = whereis(ca),
-    Ca ! {self(), printChain},
     receive
         {Ca, ok, ChainData} ->
             %[io:format("~p~n", [X]) || X <- ChainData]

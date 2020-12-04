@@ -1,14 +1,13 @@
 -module(main).
--export([init/0]).
+-export([init/0, supervise/1]).
 -import(ca, [ca_init/1]).
 -import(helper, [printList/2, automator/1]).
 
 init() ->
-    % Spawn Nodes and register ca
+    % Spawn Nodes and supervisor
     Nodes = createNodeList([], 15),
-    register(ca, spawn(ca, ca_init, [Nodes])),
-    [X ! {Nodes} || X <- Nodes],
-    timer:sleep(10).
+    spawn(?MODULE, supervise, [Nodes]),
+    [X ! {Nodes} || X <- Nodes].
 
 % ----------------------------------
 % Spawing Nodes and saving their PIDs in a list
@@ -21,3 +20,17 @@ createNodeList(Nodes, Num) when Num > 0 ->
     NewList = [Pid | Nodes],
     NumNew = Num - 1,
     createNodeList(NewList, NumNew).
+
+% Supervisor that restarts ca in the case it should go down
+supervise(Nodes) ->
+    process_flag(trap_exit, true),
+    Pid = spawn_link(ca, ca_init, [Nodes]),
+    register(ca, Pid),
+    receive
+        {'EXIT', Pid, normal} -> 
+            ok;
+        {'EXIT', Pid, shutdown} -> 
+            ok;
+        {'EXIT', Pid, _} ->
+            supervise(Nodes)
+    end.

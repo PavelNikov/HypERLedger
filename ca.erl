@@ -8,11 +8,11 @@
 % Don't forget to unregister
 
 ca_init(Nodes) ->
-    register(txIncluder, spawn(?MODULE, includeTx, [[], Nodes])),
-    ca_code(Nodes, []),
+    register(txIncluder, spawn_link(?MODULE, includeTx, [[], Nodes])),
+    loop(Nodes, []),
     ok.
 
-ca_code(Nodes, Clients) ->
+loop(Nodes, Clients) ->
     receive
         % register request from client application
         {register, Pid, SecretName} -> 
@@ -20,20 +20,19 @@ ca_code(Nodes, Clients) ->
             Bool = helper:searchList(HashedName, Clients),
             case Bool of
                 false ->
+                    txIncluder ! {self(), "a494A64075CBEDAEE8C4DE3D13D5ED2DAC4FAC9A25DD62B7853F953D7473A9326", HashedName, 500},
                     TxIncluder = whereis(txIncluder),
-                    TxIncluder ! {self(), "a494A64075CBEDAEE8C4DE3D13D5ED2DAC4FAC9A25DD62B7853F953D7473A9326", HashedName, 500},
-                    %[Client|HashedName] = NewClientsList,
                     receive
                         {TxIncluder, ok, _} ->
                             Pid ! {self(), ok};
                         {TxIncluder, nope, _} ->
                             Pid ! {self(), nope}
                     end,
-                    ca_code(Nodes, [HashedName|Clients]);
+                    loop(Nodes, [HashedName|Clients]);
                 true ->
                     M = "Client already exist, please log in instead~n",
                     Pid ! {self(), nope, M},
-                    ca_code(Nodes, Clients)
+                    loop(Nodes, Clients)
                     
             end;
 
@@ -47,27 +46,27 @@ ca_code(Nodes, Clients) ->
                 false ->
                     Pid ! {self(), nope}
             end,
-            ca_code(Nodes, Clients);
+            loop(Nodes, Clients);
 
         % new transaction to include into Pool from client application
         {Client, From, To, Amount} ->
             HashedFrom = helper:calculatePAddr(From),
             % Send Tx with public addresses to TxPool
+            txIncluder ! {self(), HashedFrom, atom_to_list(To), Amount},
             TxIncluder = whereis(txIncluder),
-            TxIncluder ! {self(), HashedFrom, atom_to_list(To), Amount},
             receive
                 {TxIncluder, ok, Message} ->
                     Client ! {self(), ok, Message};
                 {TxIncluder, nope, Message} ->
                     Client ! {self(), nope, Message}
             end,
-            ca_code(Nodes, Clients);
+            loop(Nodes, Clients);
 
         % Request to retreive Public Address from client application
         {Client, retrievePAddr, SecretName} ->
             PAddr = helper:calculatePAddr(SecretName),
             Client ! {self(), PAddr},
-            ca_code(Nodes, Clients);
+            loop(Nodes, Clients);
 
         % Request to retreive client account balance
         {Client, retrieveBalance, SecretName} ->
@@ -81,7 +80,7 @@ ca_code(Nodes, Clients) ->
                 {Node, nope} ->
                     Client ! {self(), nope}
             end,
-            ca_code(ShuffledNodes, Clients);
+            loop(ShuffledNodes, Clients);
 
         % Request to send complete ledger
         {Client, printChain} ->
@@ -92,7 +91,7 @@ ca_code(Nodes, Clients) ->
                 {Node, ok, Ledger} ->
                     Client ! {self(), ok, Ledger}
             end,
-            ca_code(ShuffledNodes, Clients)
+            loop(ShuffledNodes, Clients)
     end.
 
 % ----------------------------------
