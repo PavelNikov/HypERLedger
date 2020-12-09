@@ -27,7 +27,7 @@ createNodeList(Nodes, Num) when Num > 0 ->
 supervise(Nodes) ->
     process_flag(trap_exit, true),
     Pid = spawn_link(ca, ca_init, [Nodes]),
-    global:register_name(ca, Pid),
+    register(ca, Pid),
     receive
         {'EXIT', Pid, normal} -> 
             ok;
