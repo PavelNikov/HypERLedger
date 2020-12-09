@@ -20,7 +20,7 @@ init() ->
     printLine(),
     io:format("- If there is a choice with numbers, type in the correct number and hit ENTER~n"),
     io:format("- If you have to type in a string of characters, make sure to end with a period~n"),
-    spawn(?MODULE, choose, []).
+    register(client, spawn(?MODULE, choose, [])).
     
 choose() ->
     printLine(),
