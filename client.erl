@@ -58,7 +58,7 @@ registerClient() ->
     io:format("REGISTER CLIENT"),
     printLine(),
     {ok, SecretName} = io:read("Type in a secret name for your new account: "),
-    ca ! {register, self(), SecretName},
+    {ca, 'fries@134.21.145.85'} ! {register, self(), SecretName},
     Ca = global:whereis_name(ca),
     receive
         {Ca, ok} ->
