@@ -16,6 +16,7 @@
 
 
 init() ->
+    clr(),
     printLine(),
     io:format("GENERAL INSTRUCTIONS"),
     printLine(),
