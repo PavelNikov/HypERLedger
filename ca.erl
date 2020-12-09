@@ -3,6 +3,7 @@
 -import('lists', [append/2]).
 -import('node',[node_code/2]).
 -import('helper',[searchList/2, calculatePAddr/1]).
+-import('global', [register_name/2, whereis_name/1]).
 
 
 % Don't forget to unregister

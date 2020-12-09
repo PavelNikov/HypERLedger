@@ -3,6 +3,7 @@
 -import('string', [join/2]).
 -import('main', []).
 -import(crypto,[start/0, hmac/3, mac/4]).
+-import('global', [register_name/2, whereis_name/1]).
 -export([init/0, 
         login/0, 
         choose/0, 
@@ -20,7 +21,7 @@ init() ->
     printLine(),
     io:format("- If there is a choice with numbers, type in the correct number and hit ENTER~n"),
     io:format("- If you have to type in a string of characters, make sure to end with a period~n"),
-    register(client, spawn(?MODULE, choose, [])).
+    spawn(?MODULE, choose, []).
     
 choose() ->
     printLine(),
@@ -58,7 +59,7 @@ registerClient() ->
     printLine(),
     {ok, SecretName} = io:read("Type in a secret name for your new account: "),
     ca ! {register, self(), SecretName},
-    Ca = whereis(ca),
+    Ca = global:whereis_name(ca),
     receive
         {Ca, ok} ->
             %io:format("Now you should be able to login with your secret name~n"),

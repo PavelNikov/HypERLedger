@@ -2,6 +2,7 @@
 -export([init/0, supervise/1]).
 -import(ca, [ca_init/1]).
 -import(helper, [printList/2, automator/1]).
+-import('global', [register_name/2, whereis_name/1]).
 
 init() ->
     % Spawn Nodes and supervisor
@@ -26,7 +27,7 @@ createNodeList(Nodes, Num) when Num > 0 ->
 supervise(Nodes) ->
     process_flag(trap_exit, true),
     Pid = spawn_link(ca, ca_init, [Nodes]),
-    register(ca, Pid),
+    global:register_name(ca, Pid),
     receive
         {'EXIT', Pid, normal} -> 
             ok;
