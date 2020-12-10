@@ -16,7 +16,7 @@ ca_init(Nodes) ->
 loop(Nodes, Clients) ->
     receive
         % register request from client application
-        {register, Pid, SecretName} -> 
+        {client, Host, register, SecretName} -> 
             HashedName = helper:calculatePAddr(SecretName),
             Bool = helper:searchList(HashedName, Clients),
             case Bool of
@@ -25,76 +25,76 @@ loop(Nodes, Clients) ->
                     TxIncluder = whereis(txIncluder),
                     receive
                         {TxIncluder, ok, _} ->
-                            Pid ! {self(), ok};
+                            {client, Host} ! {ca, ok};
                         {TxIncluder, nope, _} ->
-                            Pid ! {self(), nope}
+                            {client, Host}! {ca, nope}
                         after 2000 ->
                             timeout
                     end,
                     loop(Nodes, [HashedName|Clients]);
                 true ->
                     M = "Client already exist, please log in instead~n",
-                    Pid ! {self(), nope, M},
+                    {client, Host} ! {ca, nope, M},
                     loop(Nodes, Clients)
                     
             end;
 
         % login request from client application
-        {login, Pid, SecretName} -> 
+        {client, Host, login, SecretName} -> 
             HexName = helper:calculatePAddr(SecretName),
             Bool = helper:searchList(HexName, Clients),
             case Bool of
                 true ->
-                    Pid ! {self(), ok};
+                    {client, Host} ! {ca, ok};
                 false ->
-                    Pid ! {self(), nope}
+                    {client, Host}! {ca, nope}
             end,
             loop(Nodes, Clients);
 
         % new transaction to include into Pool from client application
-        {Client, From, To, Amount} ->
+        {client, Host, From, To, Amount} ->
             HashedFrom = helper:calculatePAddr(From),
             % Send Tx with public addresses to TxPool
             txIncluder ! {self(), HashedFrom, atom_to_list(To), Amount},
             TxIncluder = whereis(txIncluder),
             receive
                 {TxIncluder, ok, Message} ->
-                    Client ! {self(), ok, Message};
+                    {client, Host} ! {ca, ok, Message};
                 {TxIncluder, nope, Message} ->
-                    Client ! {self(), nope, Message}
+                    {client, Host} ! {ca, nope, Message}
                 after 2000 ->
                     timeout
             end,
             loop(Nodes, Clients);
 
         % Request to retreive Public Address from client application
-        {Client, retrievePAddr, SecretName} ->
+        {client, Host, retrievePAddr, SecretName} ->
             PAddr = helper:calculatePAddr(SecretName),
-            Client ! {self(), PAddr},
+            {client, Host} ! {ca, PAddr},
             loop(Nodes, Clients);
 
         % Request to retreive client account balance
-        {Client, retrieveBalance, SecretName} ->
+        {client, Host, retrieveBalance, SecretName} ->
             PublicAddr = helper:calculatePAddr(SecretName),
             ShuffledNodes = shuffleList(Nodes),
             [Node | _] = ShuffledNodes,
             Node ! {self(), retrieveBalance, PublicAddr},
             receive 
                 {Node, ok, Balance} ->
-                    Client ! {self(), ok, Balance};
+                    {client, Host} ! {ca, ok, Balance};
                 {Node, nope} ->
-                    Client ! {self(), nope}
+                    {client, Host} ! {ca, nope}
             end,
             loop(ShuffledNodes, Clients);
 
         % Request to send complete ledger
-        {Client, printChain} ->
+        {client, Host, printChain} ->
             ShuffledNodes = shuffleList(Nodes),
             [Node | _] = ShuffledNodes,
             Node ! {self(), sendLedger},
             receive
                 {Node, ok, Ledger} ->
-                    Client ! {self(), ok, Ledger}
+                    {client, Host} ! {ca, ok, Ledger}
                 after 2000 ->
                     timeout
             end,
