@@ -4,7 +4,8 @@
 -import('main', []).
 -import(crypto,[start/0, hmac/3, mac/4]).
 -import('global', [register_name/2, whereis_name/1]).
--export([init/1, 
+-export([init/0,
+         init/1, 
         help/1,
         login/1, 
         choose/1, 
@@ -13,14 +14,29 @@
         printBlockchain/1,
         printList/1]).
 
-% Client Application to send Txs to the Central Authority
+% ====================================================================================================== %
+%                                   Client Application to interact with                                  %
+%                                       the hypERLedger blockchain                                       %
+% ====================================================================================================== %
 
+
+% ======================================
+% Init functions to start the client App
+% with or without arguments
+% ======================================
+
+init() ->
+    {ok, Ca_Host} = io:read("Please provide the host name of the Central Authority:\n=> "),
+    register(client, spawn(?MODULE, choose, [Ca_Host])).
 
 init(Ca_Host) ->
-    %clr(),
-    %timer:sleep(10),
+    clr(),
     register(client, spawn(?MODULE, choose, [Ca_Host])).
-    %timer:sleep(10).
+
+
+% ======================================
+% Help page
+% ======================================
 
 help(Ca_Host) ->
     printLine(),
@@ -41,6 +57,11 @@ help(Ca_Host) ->
             clr(),
             help(Ca_Host)
     end.
+
+
+% ======================================
+% Choose what to do 
+% ======================================
 
 choose(Ca_Host) ->
     printLine(),
@@ -75,33 +96,45 @@ choose(Ca_Host) ->
             choose(Ca_Host)
     end.
 
+
+% ======================================
 % Register Client with a new secret name
+% ======================================
 registerClient(Ca_Host) ->
     printLine(),
     io:format("REGISTER CLIENT"),
     printLine(),
-    {ok, SecretName} = io:read("Type in a secret name for your new account: "),
-    {ca, Ca_Host}  ! {client, node(), register, SecretName},
-    receive
-        {ca, ok} ->
-            clr(),
-            io:format("Success! You may now log in~n"),
-            login(Ca_Host);
-        {ca, nope, M} ->
-            clr(),
-            io:format("WARNING: Something went wrong creating your account~n"),
-            io:format("WARNING: ~s", [M]),
-            choose(Ca_Host)
-        after 2000 ->
-            timeout
-    end.
+    {ok, SecretName} = io:read("Type in a secret name for your new account (or \"1\" to go back): "),
+    case SecretName of
+        1 ->
+            choose(Ca_Host);
+        _ ->
+            {ca, Ca_Host}  ! {client, node(), register, SecretName},
+            receive
+                {ca, ok} ->
+                    clr(),
+                    io:format("Success! You may now log in~n"),
+                    login(Ca_Host);
+                {ca, nope, M} ->
+                    clr(),
+                    io:format("WARNING: Something went wrong creating your account~n"),
+                    io:format("WARNING: ~s", [M]),
+                    choose(Ca_Host)
+                after 2000 ->
+                    timeout(),
+                    choose(Ca_Host)
+            end
+    end.    
 
+% ======================================
+% Login to Wallet 
+% ======================================
 login(Ca_Host) ->
     printLine(),
     io:format("LOGIN"),
     printLine(),
     io:format("INFO: Make sure no one is looking over your shoulder...~n"),
-    {ok, SecretName} = io:read("Type in your secret name to enter your wallet or the number 1 to go back: "),
+    {ok, SecretName} = io:read("Type in your secret name to enter your wallet (or the number \"1\" to go back): "),
     case SecretName of 
         1 ->
             clr(),
@@ -117,10 +150,14 @@ login(Ca_Host) ->
                     io:format("WARNING: No match found for ~p. Please make sure it's spelled correctly~n", [SecretName]),
                     login(Ca_Host)
                 after 2000 ->
-                    timeout
+                    timeout(),
+                    choose(Ca_Host)
             end
     end.
 
+% ======================================
+% Personal Wallet
+% ======================================
 
 wallet(From, Ca_Host) ->
     clr(),
@@ -155,9 +192,9 @@ wallet(From, Ca_Host) ->
             wallet(From, Ca_Host)
     end.
 
-% ----------------------------------
+% ======================================
 % Retrieving Account Balance
-% ----------------------------------
+% ======================================
 
 retrieveBalance(From, Ca_Host) ->
     printLine(),
@@ -170,7 +207,7 @@ retrieveBalance(From, Ca_Host) ->
         {ca, nope} ->
             io:format("Problem retrieving account balance~n")
         after 2000 ->
-            timeout
+            ca_unreachable() 
     end,
     io:format("1. Back~n"),
     {ok, Choice} = io:read(""),
@@ -182,10 +219,9 @@ retrieveBalance(From, Ca_Host) ->
             retrieveBalance(From, Ca_Host)
     end.
 
-% ----------------------------------
+% ======================================
 % Show public address
-% ----------------------------------
-
+% ======================================
 publicAddress(SecretName, Ca_Host) ->
     printLine(),
     io:format("Public Address"),
@@ -196,7 +232,7 @@ publicAddress(SecretName, Ca_Host) ->
         {ca, PublicAddress} ->
             io:format("~s~n", [PublicAddress])
         after 2000 ->
-            timeout
+            ca_unreachable()
     end,
     io:format("1. Back~n"),
     {ok, Choice} = io:read(""),
@@ -209,9 +245,9 @@ publicAddress(SecretName, Ca_Host) ->
     end.
 
 
-% ----------------------------------
+% ======================================
 % Sending Money to another account
-% ----------------------------------
+% ======================================
 sendMoney(From, Ca_Host) ->
     printLine(),
     io:format("TRANSACTION ZONE"),
@@ -229,6 +265,9 @@ sendMoney(From, Ca_Host) ->
             sendMoney(From, Ca_Host)
     end.
 
+% ======================================
+% Create a new Transaction 
+% ======================================
 newTransaction(From, Ca_Host) ->
     clr(),
     printLine(),
@@ -268,10 +307,9 @@ newTransaction(From, Ca_Host) ->
     end,
     sendMoney(From, Ca_Host).
 
-% ----------------------------------
+% ======================================
 % Print Blockchain
-% ----------------------------------
-
+% ======================================
 printBlockchain(Ca_Host) ->
     printLine(),
     io:format("Overview of all Transactions"),
@@ -280,10 +318,9 @@ printBlockchain(Ca_Host) ->
     {ca, Ca_Host} ! {client, node(), printChain},
     receive
         {ca, ok, ChainData} ->
-            %[io:format("~p~n", [X]) || X <- ChainData]
             printList(ChainData)
         after 2000 ->
-            timeout
+           ca_unreachable()
     end,
     io:format("1. Back~n"),
     {ok, Answer} = io:read("=> "),
@@ -296,9 +333,9 @@ printBlockchain(Ca_Host) ->
     end.
 
 
-% ----------------------------------
+% ======================================
 % Helper Functions
-% ----------------------------------
+% ======================================
 printLine() ->
     io:format("~n================================================================~n").
 
@@ -314,3 +351,13 @@ printList(List) ->
     io:format("___________________________________________________~n~n"),
     io:format("From:~p~nTo: ~p~nAmount: ~w~nNew Balance Sender: ~w~nNew Balance Receiver: ~w~nBlock Hash: ~p~n~n", [From, To, Amount, NSFrom, NSTo, Hash]),
     printList(T).
+
+% ======================================
+% Error Functions
+% ======================================
+timeout() ->
+   io:format("~nA timeout occured, redirecting...~n").
+
+ca_unreachable() ->
+   io:format("~nCentral Authority unreachable...~n").
+

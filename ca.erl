@@ -6,13 +6,26 @@
 -import('global', [register_name/2, whereis_name/1]).
 
 
-% Don't forget to unregister
+% ====================================================================================================== %
+%                                   Central Authority of the blockchain                                  %
+%                                        that serves as intermediary                                     %
+%                                    between the clients and the nodes                                   %
+% ====================================================================================================== %
 
+
+% ===================================
+% Initialize ca with a group of Nodes
+% (Called in main.erl)
+% ===================================
 ca_init(Nodes) ->
     register(txIncluder, spawn_link(?MODULE, includeTx, [[], Nodes])),
     loop(Nodes, []),
     ok.
 
+
+% ===================================
+%  
+% ===================================
 loop(Nodes, Clients) ->
     receive
         % register request from client application

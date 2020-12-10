@@ -4,8 +4,10 @@
 -import(string, [join/2]).
 -export([node_code/2]).
 
+% ======================================
+% Loop for each node 
+% ======================================
 node_code(Ledger, Group) ->
-    % io:format("~p~n", [Ledger]),
 
     receive
         % Normal Mode:
@@ -74,6 +76,10 @@ node_code(Ledger, Group) ->
 
     end.
 
+
+% ======================================
+% Search a users current balance
+% ======================================
 search_user_current_balance(_, []) ->
     0;
 search_user_current_balance(User, [First_Block|Tail]) ->
