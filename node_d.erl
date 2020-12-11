@@ -1,17 +1,23 @@
--module(node).
+-module(node_d).
 -import(crypto,[start/0, hmac/3, mac/4]).
 -import(lists, [member/2]).
 -import(string, [join/2]).
--export([node_code/2]).
+-export([init_node/1]).
 
 % ======================================
 % Loop for each node 
 % ======================================
+
+init_node(Num) ->
+    register(list_to_atom(lists:flatten(io_lib:format("node~p", [Num]))), self()),
+    node_code([{{"a52DF85A2088B1088AED8CA38A08515F437642CA65BA0BC52637C1CC53DD67EF8", "a494A64075CBEDAEE8C4DE3D13D5ED2DAC4FAC9A25DD62B7853F953D7473A9326", 576460752303423488, 0, 576460752303423488}, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>}], []).
+
+
 node_code(Ledger, Group) ->
 
     receive
         % Normal Mode:
-        {{From, To, Amount, NSFrom, NSTo}, NHash} -> 
+        {Pid, {From, To, Amount, NSFrom, NSTo}, NHash} when (Pid /= self())->
             % Retrieve the old hash value:
             [{_, OHash}|_] = Ledger,
 
@@ -25,16 +31,14 @@ node_code(Ledger, Group) ->
             case Bool of
                 true -> 
                     io:format("The hash values match. Ledger is updated. ~p~n",[self()]),
-                    % io:format("~p~n", [Hash]),
                     node_code([{{From, To, Amount, NSFrom, NSTo}, NHash}|Ledger], Group);
                 false -> 
                     io:format("The hash values don't match. Transaction is rejected. ~p~n",[self()]),
-                    % io:format("~p~n", [Hash]),
                     node_code(Ledger, Group)
             end;
-
+        
         % Miner Mode:
-        {TxIncluder, From, To, Amount} ->
+        {txIncluder, Host, From, To, Amount} ->
             SenderBalance = search_user_current_balance(From, Ledger),
             io:format("Sender Balance before tx: ~p~n", [SenderBalance]),
             ReceiverBalance = search_user_current_balance(To, Ledger),
@@ -44,18 +48,17 @@ node_code(Ledger, Group) ->
             Bool = (SenderBalance >= Amount),
             case Bool of
                 true ->
-                    TxIncluder ! {self(), ok},
+                    {txIncluder, Host} ! {node, ok},
                     % Calculate new Hash
                     [{_, OHash}|_] = Ledger,
-                    % maybe crypto:start() here?
                     Item = io_lib:format("~s~s~w~w~w",[From, To, Amount, NSFrom, NSTo]),
                     NHash = crypto:mac(hmac, sha256, OHash, Item),
                     % Multicast the block
-                    [X ! {{From, To, Amount, NSFrom, NSTo}, NHash}|| X <- Group, X =/= self()],
+                    [X ! {self(), {From, To, Amount, NSFrom, NSTo}, NHash}|| X <- Group, X =/= self()],
                     node_code([{{From, To, Amount, NSFrom, NSTo}, NHash}|Ledger], Group);
     
                 false ->
-                    TxIncluder ! {self(), nope},
+                    {txIncluder, Host} ! {node, nope},
                     node_code(Ledger, Group)
             end;
             
@@ -64,16 +67,15 @@ node_code(Ledger, Group) ->
             node_code(Ledger, List_of_Nodes);
         
         % retrieve balance and send ok if it is a number
-        {Ca, retrieveBalance, PublicAddr} ->
+        {ca, Ca_Host, retrieveBalance, PublicAddr} ->
             Balance = search_user_current_balance(PublicAddr, Ledger),
-            Ca ! {self(), ok, Balance},
+            {ca, Ca_Host} ! {node, ok, Balance},
             node_code(Ledger, Group);
         
         % Send Ledger
-        {Ca, sendLedger} ->
-            Ca ! {self(), ok, Ledger},
+        {ca, Ca_Host, sendLedger} ->
+            {ca, Ca_Host} ! {node, ok, Ledger},
             node_code(Ledger, Group)
-
     end.
 
 

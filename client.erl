@@ -30,14 +30,6 @@ init() ->
     register(client, Pid),
     loop().
 
-% ======================================
-% Make sure that init() doesnt stop
-% running 
-% ======================================
-loop() ->
-    timer:sleep(10000),
-    loop().
-
 init(Ca_Host) ->
     clr(),
     Pid = spawn(?MODULE, choose, [Ca_Host]),
@@ -45,31 +37,13 @@ init(Ca_Host) ->
     loop().
 
 
-
 % ======================================
-% Help page
+% Make sure that init() doesnt stop
+% running 
 % ======================================
-
-help(Ca_Host) ->
-    printLine(),
-    io:format("GENERAL INSTRUCTIONS"),
-    printLine(),
-    io:format("~p~n", [node()]),
-    io:format("- If there is a choice with numbers, type in the correct number and hit ENTER~n"),
-    io:format("- If you have to type in a string of characters, make sure to end with a period~n"),
-    io:format("- You need to first create an account before being able to login~n"),
-    io:format("- Make sure to never loose your Secret Name, as this is the only way to enter your wallet~n"),
-    io:format("- To recieve hypercoins retrieve your Public Address from inside your wallet and give that address to the sender~n"),
-    io:format("1. Back~n"),
-    {ok, Choice} = io:read("=> "),
-    case Choice of
-        1 ->
-            choose(Ca_Host);
-        _ ->
-            clr(),
-            help(Ca_Host)
-    end.
-
+loop() ->
+    timer:sleep(10000),
+    loop().
 
 % ======================================
 % Choose what to do 
@@ -108,6 +82,31 @@ choose(Ca_Host) ->
             choose(Ca_Host)
     end,
     io:format("Loading...").
+
+% ======================================
+% Help page
+% ======================================
+
+help(Ca_Host) ->
+    printLine(),
+    io:format("GENERAL INSTRUCTIONS"),
+    printLine(),
+    io:format("~p~n", [node()]),
+    io:format("- If there is a choice with numbers, type in the correct number and hit ENTER~n"),
+    io:format("- If you have to type in a string of characters, make sure to end with a period~n"),
+    io:format("- You need to first create an account before being able to login~n"),
+    io:format("- Make sure to never loose your Secret Name, as this is the only way to enter your wallet~n"),
+    io:format("- To recieve hypercoins retrieve your Public Address from inside your wallet and give that address to the sender~n"),
+    io:format("1. Back~n"),
+    {ok, Choice} = io:read("=> "),
+    case Choice of
+        1 ->
+            choose(Ca_Host);
+        _ ->
+            clr(),
+            help(Ca_Host)
+    end.
+
 
 
 % ======================================
@@ -169,6 +168,30 @@ login(Ca_Host) ->
     end.
 
 % ======================================
+% Print Blockchain
+% ======================================
+printBlockchain(Ca_Host) ->
+    printLine(),
+    io:format("Overview of all Transactions"),
+    printLine(),
+
+    {ca, Ca_Host} ! {client, node(), printChain},
+    receive
+        {ca, ok, ChainData} ->
+            printList(ChainData)
+    end,
+    io:format("1. Back~n"),
+    {ok, Answer} = io:read("=> "),
+    case Answer of
+        1 ->
+            clr(),
+            choose(Ca_Host);
+        _ ->
+            clr(),
+            printBlockchain(Ca_Host)
+    end.
+
+% ======================================
 % Personal Wallet
 % ======================================
 
@@ -219,8 +242,8 @@ retrieveBalance(From, Ca_Host) ->
             io:format("~p~n", [Balance]);
         {ca, nope} ->
             io:format("Problem retrieving account balance~n")
-        after 2000 ->
-            ca_unreachable() 
+        %after 2000 ->
+        %    ca_unreachable() 
     end,
     io:format("1. Back~n"),
     {ok, Choice} = io:read(""),
@@ -319,32 +342,6 @@ newTransaction(From, Ca_Host) ->
             printLine()
     end,
     sendMoney(From, Ca_Host).
-
-% ======================================
-% Print Blockchain
-% ======================================
-printBlockchain(Ca_Host) ->
-    printLine(),
-    io:format("Overview of all Transactions"),
-    printLine(),
-
-    {ca, Ca_Host} ! {client, node(), printChain},
-    receive
-        {ca, ok, ChainData} ->
-            printList(ChainData)
-        after 2000 ->
-           ca_unreachable()
-    end,
-    io:format("1. Back~n"),
-    {ok, Answer} = io:read("=> "),
-    case Answer of
-        1 ->
-            choose(Ca_Host);
-        _ ->
-            clr(),
-            printBlockchain(Ca_Host)
-    end.
-
 
 % ======================================
 % Helper Functions
