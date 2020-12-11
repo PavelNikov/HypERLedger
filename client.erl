@@ -2,8 +2,6 @@
 -import('lists', [append/2]).
 -import('string', [join/2]).
 -import('main', []).
--import(crypto,[start/0, hmac/3, mac/4]).
--import('global', [register_name/2, whereis_name/1]).
 -export([init/0,
          init/1, 
         help/1,
@@ -27,11 +25,25 @@
 
 init() ->
     {ok, Ca_Host} = io:read("Please provide the host name of the Central Authority:\n=> "),
-    register(client, spawn(?MODULE, choose, [Ca_Host])).
+    clr(),
+    Pid = spawn(?MODULE, choose, [Ca_Host]),
+    register(client, Pid),
+    loop().
+
+% ======================================
+% Make sure that init() doesnt stop
+% running 
+% ======================================
+loop() ->
+    timer:sleep(10000),
+    loop().
 
 init(Ca_Host) ->
     clr(),
-    register(client, spawn(?MODULE, choose, [Ca_Host])).
+    Pid = spawn(?MODULE, choose, [Ca_Host]),
+    register(client, Pid),
+    loop().
+
 
 
 % ======================================
@@ -49,7 +61,7 @@ help(Ca_Host) ->
     io:format("- Make sure to never loose your Secret Name, as this is the only way to enter your wallet~n"),
     io:format("- To recieve hypercoins retrieve your Public Address from inside your wallet and give that address to the sender~n"),
     io:format("1. Back~n"),
-    {ok, Choice} = io:read(""),
+    {ok, Choice} = io:read("=> "),
     case Choice of
         1 ->
             choose(Ca_Host);
@@ -94,7 +106,8 @@ choose(Ca_Host) ->
         _ ->
             clr(),
             choose(Ca_Host)
-    end.
+    end,
+    io:format("Loading...").
 
 
 % ======================================
