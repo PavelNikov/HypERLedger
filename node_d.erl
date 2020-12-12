@@ -2,12 +2,12 @@
 -import(crypto,[start/0, hmac/3, mac/4]).
 -import(lists, [member/2]).
 -import(string, [join/2]).
--export([init/1, node_code/2, createNodeList/2]).
+-export([init/2, node_code/2, createNodeList/2]).
 
 
-init(Ca_Host) ->
+init(Ca_Host, Num_Nodes) ->
     io:format("Master Node initialized~n"),
-    Nodes = createNodeList([], 15),
+    Nodes = createNodeList([], Num_Nodes),
     {supervisor, Ca_Host} ! {node, Nodes},
     io:format("Sent Nodes to ca~n"),
     [X ! {master, Nodes} || X <- Nodes],
