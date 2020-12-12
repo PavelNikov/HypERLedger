@@ -1,5 +1,5 @@
 -module(ca_d).
--export([ca_init/1, includeTx/2]).
+-export([init/0, supervise/1, loop/2, includeTx/2]).
 -import('lists', [append/2]).
 -import('node_d',[node_code/2]).
 -import('helper',[searchList/2, calculatePAddr/1]).
@@ -18,11 +18,31 @@
 % (Called in main.erl) and register
 % the Transaction Includer process
 % ===================================
-ca_init(Nodes) ->
-    register(txIncluder, spawn_link(?MODULE, includeTx, [[], Nodes])),
-    loop(Nodes, []),
+init() ->
+    register(supervisor, self()),
+    receive
+        {node, Nodes} ->
+            supervise(Nodes)
+    end,
     ok.
 
+% Supervisor that restarts ca in the case it should go down
+supervise(Nodes) ->
+    process_flag(trap_exit, true),
+    Pid = spawn_link(?MODULE, loop, [Nodes, []]),
+    TxInc = spawn_link(?MODULE, includeTx, [[], Nodes]),
+    register(ca, Pid),
+    register(txIncluder, TxInc),
+    receive
+        {'EXIT', Pid, normal} -> 
+            unregister(ca),
+            ok;
+        {'EXIT', Pid, shutdown} -> 
+            unregister(ca),
+            ok;
+        {'EXIT', Pid, _} ->
+            supervise(Nodes)
+    end.
 % ===================================
 %  
 % ===================================
@@ -82,12 +102,14 @@ loop(Nodes, Clients) ->
 
         % Request to retreive Public Address from client application
         {client, Host, retrievePAddr, SecretName} ->
+            io:format("Received request to retireve public Address~n"),
             PAddr = helper:calculatePAddr(SecretName),
             {client, Host} ! {ca, PAddr},
             loop(Nodes, Clients);
 
         % Request to retreive client account balance
         {client, Client_Host, retrieveBalance, SecretName} ->
+            io:format("Received request to retreive account balance~n"),
             PublicAddr = helper:calculatePAddr(SecretName),
             ShuffledNodes = shuffleList(Nodes),
             [{Name, Node_Host} | _] = ShuffledNodes,
@@ -102,6 +124,7 @@ loop(Nodes, Clients) ->
 
         % Request to send complete ledger
         {client, Host, printChain} ->
+            io:format("Received request to print blockchain~n"),
             ShuffledNodes = shuffleList(Nodes),
             getLedger(ShuffledNodes, Host),
             loop(ShuffledNodes, Clients)
@@ -113,11 +136,9 @@ getLedger([], Client_Host) ->
 
 getLedger(Nodes, Client_Host) ->
     [{Name, Node_Host} | R] = Nodes,
-    io:format("~p ~p ~n", [Name, Node_Host]),
     {Name, Node_Host} ! {ca, node(), sendLedger},
         receive
             {node, ok, Ledger} ->
-                io:format("~p ~p ~n", [Name, Node_Host]),
                 {client, Client_Host} ! {ca, ok, Ledger}
             after 1000 ->
                 getLedger(R, Client_Host)
