@@ -31,14 +31,14 @@ $ erl -name nodes@<IP-Address> -setcookie topsecret
 (nodes@host)1> node_d:init('main@host', 15).
 ```
 
-In a third terminal window run the commands listed below. These will start a third Erlang node using the same secretcookie and initialize the client application. Again, choose the variant you used before (one or multiple physical machines). Here you have to provide the name of the Central Authorities Host. You can either input it directly as a paramenter inside the brackets like this: `client:init('main@host')` or otherwise do it in two different steps and provide the Central Authoritie's Host when prompted (as shown below). Adapt the node's name to what is shown in the prompt of the other terminal window where you started main. Now your client should start up and you should be ready to create a new account, login, check out the other transactions on the blockchain and send/receive Hypercoins!
+In a third terminal window run the commands listed below. These will start a third Erlang node using the same secretcookie and initialize the client application. Again, choose the variant you used before (one or multiple physical machines). Here you have to provide the name of the Central Authorities Host. You can either input it directly as a paramenter inside the brackets like this: `client:init('ca@host')` or otherwise do it in two different steps and provide the Central Authoritie's Host when prompted (as shown below). Adapt the node's name to what is shown in the prompt of the other terminal window where you started main. Now your client should start up and you should be ready to create a new account, login, check out the other transactions on the blockchain and send/receive Hypercoins!
 
 ```bash
 $ erl -sname client -secretcookie topsecret
 (client@host)1> client:init().
 # You should then see a prompt like the one below. Just type in the node's name without any quotes
 Please provide the host name of the Central Authority:
-=> 
+=> 'ca@host'
 ```
 
 # Developers
