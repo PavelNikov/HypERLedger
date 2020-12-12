@@ -28,7 +28,7 @@ Now you can start a second terminal window and type in the below commands. In th
 $ erl -sname nodes -setcookie topsecret
 #For deployment on multiple machines
 $ erl -name nodes@<IP-Address> -setcookie topsecret
-(nodes@host)1> node_d:init('main@host', 15).
+(nodes@host)1> node_d:init('ca@host', 15).
 ```
 
 In a third terminal window run the commands listed below. These will start a third Erlang node using the same secretcookie and initialize the client application. Again, choose the variant you used before (one or multiple physical machines). Here you have to provide the name of the Central Authorities Host. You can either input it directly as a paramenter inside the brackets like this: `client:init('ca@host')` or otherwise do it in two different steps and provide the Central Authoritie's Host when prompted (as shown below). Adapt the node's name to what is shown in the prompt of the other terminal window where you started main. Now your client should start up and you should be ready to create a new account, login, check out the other transactions on the blockchain and send/receive Hypercoins!
