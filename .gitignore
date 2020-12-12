@@ -1,12 +1,14 @@
 ca.beam
+ca_d.beam
 node.beam
+node_d.beam
 instructions_git.md
 erl_crash.dump
 client.beam
 main.beam
+main_d.beam
 helper.beam
 ca_old.erl
 ca_old.beam
-test.beam
 pow.erl
 pow.beam

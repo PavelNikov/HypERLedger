@@ -1,7 +1,7 @@
--module(ca).
+-module(ca_d).
 -export([ca_init/1, includeTx/2]).
 -import('lists', [append/2]).
--import('node',[node_code/2]).
+-import('node_d',[node_code/2]).
 -import('helper',[searchList/2, calculatePAddr/1]).
 -import('global', [register_name/2, whereis_name/1]).
 
@@ -23,7 +23,6 @@ ca_init(Nodes) ->
     loop(Nodes, []),
     ok.
 
-
 % ===================================
 %  
 % ===================================
@@ -42,7 +41,7 @@ loop(Nodes, Clients) ->
                             {client, Host} ! {ca, ok};
                         {TxIncluder, nope, _} ->
                             {client, Host}! {ca, nope}
-                        after 2000 ->
+                        after 5000 ->
                             timeout
                     end,
                     loop(Nodes, [HashedName|Clients]);
@@ -76,7 +75,7 @@ loop(Nodes, Clients) ->
                     {client, Host} ! {ca, ok, Message};
                 {TxIncluder, nope, Message} ->
                     {client, Host} ! {ca, nope, Message}
-                after 2000 ->
+                after 5000 ->
                     timeout
             end,
             loop(Nodes, Clients);
@@ -88,16 +87,16 @@ loop(Nodes, Clients) ->
             loop(Nodes, Clients);
 
         % Request to retreive client account balance
-        {client, Host, retrieveBalance, SecretName} ->
+        {client, Client_Host, retrieveBalance, SecretName} ->
             PublicAddr = helper:calculatePAddr(SecretName),
             ShuffledNodes = shuffleList(Nodes),
-            [Node | _] = ShuffledNodes,
-            Node ! {self(), retrieveBalance, PublicAddr},
+            [{Name, Node_Host} | _] = ShuffledNodes,
+            {Name, Node_Host} ! {ca, node(), retrieveBalance, PublicAddr},
             receive 
-                {Node, ok, Balance} ->
-                    {client, Host} ! {ca, ok, Balance};
-                {Node, nope} ->
-                    {client, Host} ! {ca, nope}
+                {node, ok, Balance} ->
+                    {client, Client_Host} ! {ca, ok, Balance};
+                {node, nope} ->
+                    {client, Client_Host} ! {ca, nope}
             end,
             loop(ShuffledNodes, Clients);
 
@@ -107,6 +106,23 @@ loop(Nodes, Clients) ->
             getLedger(ShuffledNodes, Host),
             loop(ShuffledNodes, Clients)
     end.
+
+% Contact all Nodes until one responds
+getLedger([], Client_Host) ->
+    {client, Client_Host} ! {ca, ok, "Blockchain is completely down"};
+
+getLedger(Nodes, Client_Host) ->
+    [{Name, Node_Host} | R] = Nodes,
+    io:format("~p ~p ~n", [Name, Node_Host]),
+    {Name, Node_Host} ! {ca, node(), sendLedger},
+        receive
+            {node, ok, Ledger} ->
+                io:format("~p ~p ~n", [Name, Node_Host]),
+                {client, Client_Host} ! {ca, ok, Ledger}
+            after 1000 ->
+                getLedger(R, Client_Host)
+        end.
+          
 
 % ----------------------------------
 % Function where the Includer process runs 
@@ -128,36 +144,22 @@ includeTx(Pool, Nodes) ->
 
 % shuffle list
 shuffleList(List) ->
-    [X||{_,X} <- lists:sort([{rand:uniform(), Miner} || Miner <- List])].
+    [X||{_,X} <- lists:sort([{rand:uniform(), Node} || Node <- List])].
 
 % take oldest tx and next Miner
 sendToMiner(Ca, Pool, Nodes, From, To, Amount) ->
     [{From, To, Amount} | T] = Pool,
-    [NextMiner | _] = Nodes,
-    NextMiner ! {self(), From, To, Amount},
+    [{Name, Host} | _] = Nodes,
+    io:format("~p~p~n", [Name, Host]),
+    {Name, Host} ! {txIncluder, node(), From, To, Amount},
     receive
-        {NextMiner, ok} ->
+        {node, ok} ->
             Message = "Sender has enough funds.",
             Ca ! {self(), ok, Message};
-        {NextMiner, nope} ->
+        {node, nope} ->
             Message = "Sender does not have enough funds.",
             Ca ! {self(), nope, Message}
     end,
     includeTx(T, Nodes).
 
-% Contact all Nodes until one responds
-
-getLedger([], Host) ->
-    {client, Host} ! {ca, ok, "Blockchain is completely down"};
-
-getLedger(Nodes, Host) ->
-    [Node | R] = Nodes,
-     Node ! {self(), sendLedger},
-        receive
-            {Node, ok, Ledger} ->
-                {client, Host} ! {ca, ok, Ledger}
-            after 2000 ->
-                getLedger(R, Host)
-        end.
-          
 

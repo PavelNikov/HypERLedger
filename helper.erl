@@ -1,29 +1,15 @@
 -module(helper).
--export([printList/2, automator/1, 
+-export([printList/2,
         searchList/2, binaryToHex/1, calculatePAddr/1]).
 -import(crypto,[start/0, hmac/3, mac/4]).
 -import(lists, [flatten/2]).
 
+% Print any given list with a Message before each element
 printList(Message, List) ->
     io:format("~p: ~p~n", [Message, List]).
 
-automator(Recipient) ->
-    % Recipient ! {"CA", "pablo", 100},
-    % timer:sleep(500),
-    % % Recipient ! {"CA", "nina", 50},
-    % % timer:sleep(500),
-    % % Recipient ! {"CA", "pablo", 30},
-    % % timer:sleep(500),
-    % % Recipient ! {"CA", "peter", 200},
-    % % timer:sleep(500),
-    Recipient ! {"CA", "nina", 10},
-    timer:sleep(1000),
-    Recipient ! {"CA", "paul", 5},
-    timer:sleep(1000),
-    Recipient ! {"nina", "paul", 5},
-    timer:sleep(500).
 
-
+% Recursively Search a list
 searchList(_, []) ->
     false;
 
@@ -38,11 +24,11 @@ searchList(Item, List) ->
             searchList(Item, R)
     end.
 
+% Hasing of secret name and transformation to binary
 calculatePAddr(SecretName) ->
     crypto:start(),
     helper:binaryToHex(crypto:mac(hmac, sha256, atom_to_list(SecretName), "security")).
 
 binaryToHex(Binary) ->
-    %io_lib:format("b~s",[string:lowercase([io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ])]).
     % Prepend an a to each hex value to show that it's an address
     "a" ++ string:lowercase([io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ]).
