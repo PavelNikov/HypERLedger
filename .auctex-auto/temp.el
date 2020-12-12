@@ -5,13 +5,13 @@
                      '(("article" "11pt")))
    (TeX-add-to-alist 'LaTeX-provided-package-options
                      '(("inputenc" "utf8") ("fontenc" "T1") ("ulem" "normalem")))
-   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "href")
-   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "hyperref")
-   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "hyperimage")
-   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "hyperbaseurl")
-   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "nolinkurl")
-   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "url")
    (add-to-list 'LaTeX-verbatim-macros-with-braces-local "path")
+   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "url")
+   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "nolinkurl")
+   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "hyperbaseurl")
+   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "hyperimage")
+   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "hyperref")
+   (add-to-list 'LaTeX-verbatim-macros-with-braces-local "href")
    (add-to-list 'LaTeX-verbatim-macros-with-delims-local "path")
    (TeX-run-style-hooks
     "latex2e"
@@ -31,10 +31,10 @@
     "capt-of"
     "hyperref")
    (LaTeX-add-labels
-    "sec:org5cad322"
-    "sec:org49e02eb"
-    "sec:org74d9a8b"
-    "sec:org2089aba"
-    "sec:orgc70bc3b"))
+    "sec:org24fd15d"
+    "sec:orgcbd2044"
+    "sec:orgf2f2039"
+    "sec:orgf62e70f"
+    "sec:orgc788caa"))
  :latex)
 
