@@ -2,19 +2,42 @@
 -import(crypto,[start/0, hmac/3, mac/4]).
 -import(lists, [member/2]).
 -import(string, [join/2]).
--export([init_node/1]).
+-export([init/1, node_code/2, createNodeList/2]).
+
+
+init(Ca_Host) ->
+    io:format("Master Node initialized~n"),
+    Nodes = createNodeList([], 15),
+    {supervisor, Ca_Host} ! {node, Nodes},
+    io:format("Sent Nodes to ca~n"),
+    [X ! {master, Nodes} || X <- Nodes],
+    io:format("Sent message to all nodes~n"),
+    loop().
+
+loop() ->
+    timer:sleep(10000),
+    loop().
+
+% ----------------------------------
+% Spawing Nodes and saving their PIDs in a list
+% Give them all the same genesis block  
+% ----------------------------------
+createNodeList(Nodes, 0) ->
+    Nodes;
+
+createNodeList(Nodes, Num) when Num > 0 ->
+    Pid = spawn(?MODULE, node_code, [[{{"a52DF85A2088B1088AED8CA38A08515F437642CA65BA0BC52637C1CC53DD67EF8", "a494A64075CBEDAEE8C4DE3D13D5ED2DAC4FAC9A25DD62B7853F953D7473A9326", 576460752303423488, 0, 576460752303423488}, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>}],[]]),
+    register(list_to_atom(lists:flatten(io_lib:format("node~p", [Num]))), Pid),
+    % Add a new entry to the list the name of the node and a number
+    NewList = [{list_to_atom(lists:flatten(io_lib:format("node~p", [Num]))), node()} | Nodes],
+    NumNew = Num - 1,
+    io:format("Done~n"),
+    createNodeList(NewList, NumNew).
 
 % ======================================
-% Loop for each node 
+% Loop for each node                    
 % ======================================
-
-init_node(Num) ->
-    register(list_to_atom(lists:flatten(io_lib:format("node~p", [Num]))), self()),
-    node_code([{{"a52DF85A2088B1088AED8CA38A08515F437642CA65BA0BC52637C1CC53DD67EF8", "a494A64075CBEDAEE8C4DE3D13D5ED2DAC4FAC9A25DD62B7853F953D7473A9326", 576460752303423488, 0, 576460752303423488}, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>}], []).
-
-
 node_code(Ledger, Group) ->
-
     receive
         % Normal Mode:
         {Pid, {From, To, Amount, NSFrom, NSTo}, NHash} when (Pid /= self())->
@@ -63,7 +86,7 @@ node_code(Ledger, Group) ->
             end;
             
         % Node receives the list of peer nodes to be able to multicast later on.
-        {main, List_of_Nodes} ->
+        {master, List_of_Nodes} ->
             node_code(Ledger, List_of_Nodes);
         
         % retrieve balance and send ok if it is a number
