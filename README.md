@@ -38,7 +38,7 @@ $ erl -sname client -secretcookie topsecret
 (client@host)1> client:init().
 # You should then see a prompt like the one below. Just type in the node's name without any quotes
 Please provide the host name of the Central Authority:
-=> 'ca@host'
+=> 'ca@host'.
 ```
 
 # Developers
