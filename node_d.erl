@@ -2,7 +2,7 @@
 -import(crypto,[start/0, hmac/3, mac/4]).
 -import(lists, [member/2]).
 -import(string, [join/2]).
--export([init/1, node_code/2, createNodeList/2]).
+-export([init/2, node_code/2, createNodeList/2]).
 
 
 init(Ca_Host, Num_Nodes) ->
