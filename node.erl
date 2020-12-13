@@ -1,4 +1,4 @@
--module(node_d).
+-module(node).
 -import(crypto,[start/0, hmac/3, mac/4]).
 -import(lists, [member/2]).
 -import(string, [join/2]).
@@ -31,7 +31,6 @@ createNodeList(Nodes, Num) when Num > 0 ->
     % Add a new entry to the list the name of the node and a number
     NewList = [{list_to_atom(lists:flatten(io_lib:format("node~p", [Num]))), node()} | Nodes],
     NumNew = Num - 1,
-    io:format("Done~n"),
     createNodeList(NewList, NumNew).
 
 % ======================================

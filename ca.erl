@@ -1,4 +1,4 @@
--module(ca_d).
+-module(ca).
 -export([init/0, supervise/1, loop/2, includeTx/2]).
 -import('lists', [append/2]).
 -import('node_d',[node_code/2]).
@@ -20,6 +20,7 @@
 % ===================================
 init() ->
     register(supervisor, self()),
+    io:format("Waiting for Nodes~n"),
     receive
         {node, Nodes} ->
             supervise(Nodes)
@@ -31,8 +32,10 @@ supervise(Nodes) ->
     process_flag(trap_exit, true),
     Pid = spawn_link(?MODULE, loop, [Nodes, []]),
     TxInc = spawn_link(?MODULE, includeTx, [[], Nodes]),
+    io:format("Spawned ca and Tx includer~n"),
     register(ca, Pid),
     register(txIncluder, TxInc),
+    io:format("ca waiting for requests from client~n"),
     receive
         {'EXIT', Pid, normal} -> 
             unregister(ca),
@@ -66,7 +69,7 @@ loop(Nodes, Clients) ->
                     end,
                     loop(Nodes, [HashedName|Clients]);
                 true ->
-                    M = "Client already exist, please log in instead~n",
+                    M = "Client already exist, please log in instead",
                     {client, Host} ! {ca, nope, M},
                     loop(Nodes, Clients)
                     
@@ -112,8 +115,8 @@ loop(Nodes, Clients) ->
             io:format("Received request to retreive account balance~n"),
             PublicAddr = helper:calculatePAddr(SecretName),
             ShuffledNodes = shuffleList(Nodes),
-            [{Name, Node_Host} | _] = ShuffledNodes,
-            {Name, Node_Host} ! {ca, node(), retrieveBalance, PublicAddr},
+            [Node | _] = ShuffledNodes,
+            Node ! {ca, node(), retrieveBalance, PublicAddr},
             receive 
                 {node, ok, Balance} ->
                     {client, Client_Host} ! {ca, ok, Balance};
@@ -135,8 +138,8 @@ getLedger([], Client_Host) ->
     {client, Client_Host} ! {ca, ok, "Blockchain is completely down"};
 
 getLedger(Nodes, Client_Host) ->
-    [{Name, Node_Host} | R] = Nodes,
-    {Name, Node_Host} ! {ca, node(), sendLedger},
+    [Node | R] = Nodes,
+    Node ! {ca, node(), sendLedger},
         receive
             {node, ok, Ledger} ->
                 {client, Client_Host} ! {ca, ok, Ledger}
@@ -170,9 +173,8 @@ shuffleList(List) ->
 % take oldest tx and next Miner
 sendToMiner(Ca, Pool, Nodes, From, To, Amount) ->
     [{From, To, Amount} | T] = Pool,
-    [{Name, Host} | _] = Nodes,
-    io:format("~p~p~n", [Name, Host]),
-    {Name, Host} ! {txIncluder, node(), From, To, Amount},
+    [Node | _] = Nodes,
+    Node ! {txIncluder, node(), From, To, Amount},
     receive
         {node, ok} ->
             Message = "Sender has enough funds.",

@@ -242,8 +242,6 @@ retrieveBalance(From, Ca_Host) ->
             io:format("~p~n", [Balance]);
         {ca, nope} ->
             io:format("Problem retrieving account balance~n")
-        %after 2000 ->
-        %    ca_unreachable() 
     end,
     io:format("1. Back~n"),
     {ok, Choice} = io:read(""),
