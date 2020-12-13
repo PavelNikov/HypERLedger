@@ -1,7 +1,7 @@
 # HypERLedger
 A protoype blockchain and client application written in Erlang.
 
-**Discalimer:** This has nothing to do with [this Hyperledger](https://www.hyperledger.org/) or [this one](https://www.ibm.com/blockchain/hyperledger) project. It's just a blockchain written in erlang and hyperledger is a blockchain-related-word containing the letters ERL which are short for Erlang. #PunIntended #ProbablyLessFunnyThanWeThought 
+**Disclaimer:** This has nothing to do with [this Hyperledger](https://www.hyperledger.org/) or [this one](https://www.ibm.com/blockchain/hyperledger) project. It's just a blockchain written in erlang and hyperledger is a blockchain-related-word containing the letters ERL which are short for Erlang. #PunIntended #ProbablyLessFunnyThanWeThought 
 
 
 ![](.images/landing_screen.png)
